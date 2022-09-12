@@ -1,0 +1,21 @@
+query=<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Query>
+<Query  virtualSchemaName = "default" formatter = "TSV" header = "0" uniqueRows = "0" count = "" datasetConfigVersion = "0.6" >
+			
+	<Dataset name = "hsapiens_gene_ensembl" interface = "default" >
+		<Attribute name = "ensembl_gene_id" />
+		<Attribute name = "ensembl_gene_id_version" />
+		<Attribute name = "hsapiens_paralog_ensembl_gene" />
+		<Attribute name = "hsapiens_paralog_associated_gene_name" />
+		<Attribute name = "hsapiens_paralog_chrom_start" />
+		<Attribute name = "hsapiens_paralog_chromosome" />
+		<Attribute name = "hsapiens_paralog_ensembl_peptide" />
+		<Attribute name = "hsapiens_paralog_chrom_end" />
+		<Attribute name = "hsapiens_paralog_canonical_transcript_protein" />
+		<Attribute name = "hsapiens_paralog_subtype" />
+		<Attribute name = "hsapiens_paralog_orthology_type" />
+		<Attribute name = "hsapiens_paralog_perc_id" />
+		<Attribute name = "hsapiens_paralog_perc_id_r1" />
+		<Attribute name = "external_gene_name" />
+	</Dataset>
+</Query>

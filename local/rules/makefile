@@ -20,6 +20,9 @@ Ohnologs_Makino_ParamPriya_Merged.tsv: Makino_2010_Ohnologs_Clean.tsv ParamPriya
 
 human_paralogs_biomart.tsv:
 	wget -O $@ --post-file mart_paralogs_query.xml 'http://www.ensembl.org/biomart/martservice'
+	
+halved_human_paralogs_biomart.tsv: human_paralogs_biomart.tsv
+	awk -F"\t" '$1<$3 {print $0}' human_paralogs_biomart.tsv > halved_human_paralogs_biomart.tsv
 
 
 
