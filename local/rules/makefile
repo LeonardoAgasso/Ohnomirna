@@ -1,3 +1,5 @@
+.DELETE_ON_ERROR:
+
 makino_2010_ohnologs.xls:
 	wget -O $@ 'https://www.pnas.org/action/downloadSupplement?doi=10.1073%2Fpnas.0914697107&file=st01.xls'
 
@@ -20,23 +22,31 @@ ohnologs_makino_parampriya_merged.tsv: makino_2010_ohnologs_clean.tsv parampriya
 human_paralogs_biomart.tsv:
 	wget -O $@ --post-file ../../local/src/mart_paralogs_query.xml 'http://www.ensembl.org/biomart/martservice'
 	
-halved_human_paralogs_biomart.tsv: human_paralogs_biomart.tsv
-	awk -F"\t" '$1<$3 && $3!="" {print $0}' $< > $@
+human_paralogs_biomart.halved.filtered.tsv: human_paralogs_biomart.tsv
+	awk -F"\t" '$$1<$$3 && $$3!="" && $$7~/^ENSP/ && $$11=="within_species_paralog" {print $$0}' $< > $@
+	#Filter consists in picking paralogs which are protein-coding, and consider just A-B (since both A-B and B-A are present)
+	#"within_species_paralog" because see https://www.ensembl.org/info/website/glossary.html
 	
-ohnologs_makino_parampriya_merged.filtered.tsv: ohnologs_makino_parampriya_merged.tsv halved_human_paralogs_biomart.tsv
+ohnologs_makino_parampriya_merged.filtered.tsv: ohnologs_makino_parampriya_merged.tsv human_paralogs_biomart.halved.filtered.tsv
 	filter_2col 1 3 --both-orders $< < $(word 2, $^) > $@
 
-ssd_paralogs.tsv: ohnologs_makino_parampriya_merged.tsv halved_human_paralogs_biomart.tsv
+ssd_paralogs.tsv: ohnologs_makino_parampriya_merged.tsv human_paralogs_biomart.halved.filtered.tsv
 	filter_2col 1 3 -v --both-orders $< < $(word 2, $^) > $@
 	
-ssd_barplot.tsv: ssd_paralogs.tsv
-	awk -F"\t" '{print $10}' $< | sort | uniq -c | awk -F"\t" '{print $1 "\t" $2}' > $@
+commAncestors_list.tsv: human_paralogs_biomart.halved.filtered.tsv
+	awk -F"\t" '{print $$10}' $< | sort | uniq > $@
 	
-wgd_barplot.tsv: wgd_ohnologs_makino_parampriya_merged.filtered.tsv
-	awk -F"t" '{print $10}' $< | sort | uniq -c | awk -F"\t" '{print $1 "\t" $2}' > $@
+commAncestors_list.labeled.tsv: comm_ancestors.tsv
+	#Manual labelling with an ordinal number using https://www.ncbi.nlm.nih.gov/Taxonomy
 	
-all_barplot.tsv: halved_human_paralogs_biomart.tsv
-	awk -F"\t" '{print $10}' $< | sort | uniq -c | awk -F"\t" '{print $1 "\t" $2}' > $@
+barplot_ssdOnly.tsv: ssd_paralogs.tsv
+	awk -F"\t" '{print $$10}' $< | sort | uniq -c > $@
+	
+barplot_wgdOnly.tsv: ohnologs_makino_parampriya_merged.filtered.tsv
+	awk -F"t" '{print $$10}' $< | sort | uniq -c > $@
+	
+barplot_all.tsv: human_paralogs_biomart.halved.filtered.tsv
+	awk -F"\t" '{print $$10}' $< | sort | uniq -c > $@
 
 
 
