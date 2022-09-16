@@ -40,13 +40,13 @@ commAncestors_list.labeled.tsv: comm_ancestors.tsv
 	#Manual labelling with an ordinal number using https://www.ncbi.nlm.nih.gov/Taxonomy
 	
 barplot_ssdOnly.tsv: ssd_paralogs.tsv
-	awk -F"\t" '{print $$10}' $< | sort | uniq -c > $@
+	awk -F"\t" '{print $$10}' $< | sort | uniq -c | awk '{print $$1 "\t" $$2}' > $@
 	
 barplot_wgdOnly.tsv: ohnologs_makino_parampriya_merged.filtered.tsv
-	awk -F"t" '{print $$10}' $< | sort | uniq -c > $@
+	awk -F"\t" '{print $$10}' $< | sort | uniq -c | awk '{print $$1 "\t" $$2}' > $@
 	
 barplot_all.tsv: human_paralogs_biomart.halved.filtered.tsv
-	awk -F"\t" '{print $$10}' $< | sort | uniq -c > $@
+	awk -F"\t" '{print $$10}' $< | sort | uniq -c | awk '{print $$1 "\t" $$2}' > $@
 
 
 
