@@ -1,0 +1,4 @@
+name: OhnomirnaEnv
+channels:
+  - defaults
+prefix: /home/mmasera_local/anaconda3/envs/OhnomirnaEnv
