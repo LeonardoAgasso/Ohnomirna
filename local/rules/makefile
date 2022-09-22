@@ -40,13 +40,42 @@ commAncestors_list.labeled.tsv: comm_ancestors.tsv
 	#Manual labelling with an ordinal number using https://www.ncbi.nlm.nih.gov/Taxonomy
 	
 barplot_ssdOnly.tsv: ssd_paralogs.tsv
-	awk -F"\t" '{print $$10}' $< | sort | uniq -c > $@
+	awk -F"\t" '{print $$10}' $< | sort | uniq -c | awk '{print $$1 "\t" $$2}' > $@
 	
 barplot_wgdOnly.tsv: ohnologs_makino_parampriya_merged.filtered.tsv
-	awk -F"t" '{print $$10}' $< | sort | uniq -c > $@
+	awk -F"\t" '{print $$10}' $< | sort | uniq -c | awk '{print $$1 "\t" $$2}' > $@
 	
 barplot_all.tsv: human_paralogs_biomart.halved.filtered.tsv
-	awk -F"\t" '{print $$10}' $< | sort | uniq -c > $@
+	awk -F"\t" '{print $$10}' $< | sort | uniq -c | awk '{print $$1 "\t" $$2}' > $@
+
+
+#----------------------------MOCK-MAKEFILE (bedtools intersect training)-------------------------------------------
+
+gencode.gtf.gz:
+	wget -O $@ 'https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_41/gencode.v41.annotation.gtf.gz'
+
+gencode.gtf: gencode.gtf.gz
+	gzip -d $<
+
+gencode.geneOnly.gtf: gencode.gtf
+	awk -F"\t" '$3=="gene"' $< > $@
+	
+gencode.geneOnly.protcod.gtf: gencode.geneOnly.gtf
+	awk -F"\t" '$9~/gene_type "protein_coding"/' $< > $@
+	
+gencode.geneOnly.miRNA.gtf: gencode.geneOnly.gtf
+	awk -F"\t" '$9~/gene_type "miRNA"/' $< > $@
+
+gencode.geneOnly.protcod.bed: gencode.geneOnly.protcod.gtf
+	awk -F"\t" '{print $1 "\t" $4 "\t" $5 "\t" $9}' $< > $@
+
+gencode.geneOnly.miRNA.bed: gencode.geneOnly.miRNA.gtf
+	awk -F"\t" '{print $1 "\t" $4 "\t" $5 "\t" $9}' $< > $@
+	
+gencode.genOnly.miRNA_intWithProtcod.bed: gencode.geneOnly.protcod.bed gencode.geneOnly.miRNA.bed
+	bedtools intersect -a $< -b $(word 2, $^) > $@
+
+#----------------------------END MOCK-MAKEFILE---------------------------------------------------------------------
 
 
 
