@@ -1,4 +1,6 @@
 name: OhnomirnaEnv
 channels:
+  - conda-forge
+  - bioconda
   - defaults
-prefix: /home/mmasera_local/anaconda3/envs/OhnomirnaEnv
+prefix: /home/leonardo/anaconda3/envs/OhnomirnaEnv

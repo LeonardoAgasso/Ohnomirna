@@ -6,26 +6,35 @@ makino_2010_ohnologs.xls:
 parampriya_2020_ohnologs_pairs_strict.tsv:
 	wget -O $@ 'http://ohnologs.curie.fr/cgi-bin/DownloadBrowse.cgi?crit=[0]&org=hsapiens&opt=pairs&wgd=2R'
 	#If not working try manually from Ohnologs V2 database: http://ohnologs.curie.fr/cgi-bin/BrowsePage.cgi?org=hsapiens
+	#NR = 4,259
 	
 makino_2010_ohnologs.tsv: makino_2010_ohnologs.xls
-	#Took sheet 7 Makino_2010_Ohnologs.xls
+	#Took sheet 7 Makino_2010_Ohnologs.xls. 
+	#NR = 9,062
 
 parampriya_2020_Ohnologs_pairs_strict_clean.tsv: parampriya_2020_ohnologs_pairs_strict.tsv
 	awk -F"\t" 'NR>1 {print $$1 "\t" $$2}' $< > $@
+	#NR = 4,258
 
 makino_2010_ohnologs_clean.tsv: makino_2010_ohnologs.tsv
 	awk -F"\t" 'NR>1 && $$1~/^ENSG/ {print $$1 "\t" $$4}' $< > $@
+	#NR = 9,057 
+	#(correctly removed first two and least three lines)
 
 ohnologs_makino_parampriya_merged.tsv: makino_2010_ohnologs_clean.tsv parampriya_2020_ohnologs_pairs_strict_clean.tsv 
-	cat $^ > $@
+	cat $^ | sort | uniq > $@
+	#NR = 11,800
+	#(correctly slightly less than 4258+9057=13315)
 
 human_paralogs_biomart.tsv:
 	wget -O $@ --post-file ../../local/src/mart_paralogs_query.xml 'http://www.ensembl.org/biomart/martservice'
+	#NR = 3,607,809
 	
 human_paralogs_biomart.halved.filtered.tsv: human_paralogs_biomart.tsv
-	awk -F"\t" '$$1<$$3 && $$3!="" && $$7~/^ENSP/ && $$11=="within_species_paralog" {print $$0}' $< > $@
-	#Filter consists in picking paralogs which are protein-coding, and consider just A-B (since both A-B and B-A are present)
+	awk -F"\t" '$$1<$$3 && $$3!="" && $$11=="within_species_paralog" {print $$0}' $< > $@
+	#Filtering and halving consists in picking paralogs and consider just A-B (since both A-B and B-A are present)
 	#"within_species_paralog" because see https://www.ensembl.org/info/website/glossary.html
+	#NR = 58,417
 	
 ohnologs_makino_parampriya_merged.filtered.tsv: ohnologs_makino_parampriya_merged.tsv human_paralogs_biomart.halved.filtered.tsv
 	filter_2col 1 3 --both-orders $< < $(word 2, $^) > $@
