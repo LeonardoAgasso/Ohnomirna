@@ -1,1 +1,1 @@
-../../local/rules/makefile
+/home/leonardo/Scrivania/Ohnomirna/local/rules/makefile.v1

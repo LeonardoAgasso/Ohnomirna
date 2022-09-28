@@ -1,1 +1,0 @@
-/home/leonardo/Scrivania/filter_2col/filter_2col.pl
