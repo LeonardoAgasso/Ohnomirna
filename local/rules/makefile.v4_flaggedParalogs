@@ -27,6 +27,13 @@ ohnologs_makino_parampriya_merged.tsv: makino_2010_ohnologs_clean.tsv parampriya
 	#Merged databases and cleaned duplicates
 	#NR = 11,800
 	#(correctly slightly less than 4258+9057=13315)
+	
+ohnologs_makino_parampriya_merged.joint_id.tsv: ohnologs_makino_parampriya_merged.tsv
+	awk -F"\t" '$$1<$$2 {print $$1":"$$2 "\t" "WGD"} $$1>=$$2{print $$2":"$$1 "\t" "WGD"}' $< | sort | uniq > $@
+	#Dictionary to keep both SSD and WGD labeled in the same file containing all human paralogues
+	####################################################################################################################
+	##										!!!!!!!!!!OCCHIO PERCHÉ IL SORT | UNIQ MANCA NELLE ALTRE VERSIONI          									##
+	####################################################################################################################
 
 human_paralogs_biomart.tsv:
 	wget -O $@ --post-file ../../local/src/mart_paralogs_query.xml 'http://www.ensembl.org/biomart/martservice'
@@ -38,15 +45,20 @@ human_paralogs_biomart.halved.filtered.tsv: human_paralogs_biomart.tsv
 	| cut -f 1,3- > $@
 	#Filtering and halving consists in picking paralogs and consider just A-B (since both A-B and B-A are present)
 	#Second column is removed since it contains the gene_id with the Ensembl version (useless in our work)
-	#"within_species_paralog" because see https://www.ensembl.org/info/website/glossary.html
+	#"within_species_paralog" (see https://www.ensembl.org/info/website/glossary.html for the reason)
 	#NR = 58,417
 	
+human_paralogs_biomart.halved.filtered.joint_id.tsv: human_paralogs_biomart.halved.filtered.tsv
+	awk -F"\t" '{print $$0 "\t" $$1":"$$2 }' $< > $@
+	#Add a columnt to append the label using the dictionary "ohnologs_makino_parampriya_merged.joint_id.tsv"
+	
+human_paralogs_biomart.halved.filtered.flagged.tsv: ohnologs_makino_parampriya_merged.joint_id.tsv human_paralogs_biomart.halved.filtered.joint_id.tsv
+	translate -a -d -z -v -e SSD $< 14 < $(word 2, $^) | cut -f 1-13,15 > $@
+
 ohnologs_makino_parampriya_merged.filtered.tsv: ohnologs_makino_parampriya_merged.tsv human_paralogs_biomart.halved.filtered.tsv
 	filter_2col 1 2 --both-orders $< < $(word 2, $^) > $@
 	#Ohnologs confirmed as paralogs using Ensembl
 	#NR = 1,673 (since the filter here allows 'within_species_paralog' only)
-	#In ohnologs_makino_parampriya_merged.tsv I have some redundand couples (noise)
-	#this noise is cancelled since in human_paralogs_biomart.halved.filtered.tsv I have no redundancy
 
 ssd_paralogs.tsv: ohnologs_makino_parampriya_merged.tsv human_paralogs_biomart.halved.filtered.tsv
 	filter_2col 1 2 -v --both-orders $< < $(word 2, $^) > $@

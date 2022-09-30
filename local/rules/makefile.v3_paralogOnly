@@ -45,8 +45,6 @@ ohnologs_makino_parampriya_merged.filtered.tsv: ohnologs_makino_parampriya_merge
 	filter_2col 1 2 --both-orders $< < $(word 2, $^) > $@
 	#Ohnologs confirmed as paralogs using Ensembl
 	#NR = 1,673 (since the filter here allows 'within_species_paralog' only)
-	#In ohnologs_makino_parampriya_merged.tsv I have some redundand couples (noise)
-	#this noise is cancelled since in human_paralogs_biomart.halved.filtered.tsv I have no redundancy
 
 ssd_paralogs.tsv: ohnologs_makino_parampriya_merged.tsv human_paralogs_biomart.halved.filtered.tsv
 	filter_2col 1 2 -v --both-orders $< < $(word 2, $^) > $@
@@ -88,13 +86,13 @@ gencode.geneOnly.protcod.gtf: gencode.geneOnly.gtf
 gencode.geneOnly.miRNA.gtf: gencode.geneOnly.gtf
 	awk -F"\t" '$$9~/gene_type "miRNA"/' $< > $@
 
-gencode.geneOnly.protcod.bed: gencode.geneOnly.protcod.gtf
-	awk -F"\t" '{print $$1 "\t" $$4 "\t" $$5 "\t" $$9 "\t" "NA" "\t" $$7}' $< > $@
+#gencode.geneOnly.protcod.bed: gencode.geneOnly.protcod.gtf
+	#awk -F"\t" '{print $$1 "\t" $$4 "\t" $$5 "\t" $$9 "\t" "NA" "\t" $$7}' $< > $@
 
 gencode.geneOnly.miRNA.bed: gencode.geneOnly.miRNA.gtf
 	awk -F"\t" '{print $$1 "\t" $$4 "\t" $$5 "\t" $$9 "\t" "NA" "\t" $$7}' $< > $@
 	
-gencode.geneOnly.miRNA_intWithProtcod.bed: gencode.geneOnly.protcod.bed gencode.geneOnly.miRNA.bed
+gencode.geneOnly.miRNA_intWithProtcod.bed: gencode.geneOnly.miRNA.bed gencode.geneOnly.protcod.bed
 	bedtools intersect -a $< -b $(word 2, $^) > $@
 	
 ohnologsCouples.tsv: ohnologs_makino_parampriya_merged.filtered.tsv
@@ -103,19 +101,19 @@ ohnologsCouples.tsv: ohnologs_makino_parampriya_merged.filtered.tsv
 ohnologsSingles.tsv: ohnologsCouples.tsv
 	awk -F"\t" '{print $$1 ; print $$2}' $< | sort | uniq > $@	
 
-gencode.geneOnly.bed: gencode.geneOnly.gtf
+%.bed: %.gtf
 	awk -F"\t" '{split($$9,a," "); print $$1 "\t" $$4 "\t" $$5 "\t" substr(a[2], 2, 15) "\t" $$6 "\t" $$7 "\t" substr($$9, length(a[2])+10, length($$9))}' $< > $@
 
 ohnologsSingles.bed: ohnologsSingles.tsv gencode.geneOnly.bed
 	filter_1col 4 $< < $(word 2, $^) > $@
 	
-protodictionary.tsv: gencode.geneOnly.miRNA_intWithProtcod.bed ohnologsSingles.bed
+protodictionary.tsv: gencode.geneOnly.miRNA_intWithProtcod.bed gencode.geneOnly.protcod.bed
 	bedtools intersect -wb -a $< -b $(word 2, $^) > $@
 	
 dictionary.tsv: protodictionary.tsv
 	awk -F"\t" '{split($$4,a," "); print $$10 "\t" substr(a[2], 2, 15) "\t" a[6] }' $< | tr -d '";' > $@
 
-ohnologs_miRNA_couples.tsv: ohnologsCouples.tsv
+paralogs_miRNA_couples.tsv: human_paralogs_biomart.halved.filtered.tsv
 	translate -a -d -v -e NA dictionary.tsv 1 2 < $< | grep -vw NA > $@
 
 
