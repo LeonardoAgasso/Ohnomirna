@@ -100,7 +100,7 @@ gencode.geneOnly.miRNA.bed: gencode.geneOnly.miRNA.gtf
 	awk -F"\t" '{print $$1 "\t" $$4 "\t" $$5 "\t" $$9 "\t" "NA" "\t" $$7}' $< > $@
 	#NR = 1,879
 	
-gencode.geneOnly.miRNA_intWithProtcod.bed: gencode.geneOnly.protcod.bed gencode.geneOnly.miRNA.bed
+gencode.geneOnly.miRNA_intWithProtcod.bed: gencode.geneOnly.miRNA.bed gencode.geneOnly.protcod.bed
 	bedtools intersect -a $< -b $(word 2, $^) > $@
 	#NR = 1,278
 	

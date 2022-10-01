@@ -114,7 +114,7 @@ dictionary.tsv: protodictionary.tsv
 	awk -F"\t" '{split($$4,a," "); print $$10 "\t" substr(a[2], 2, 15) "\t" a[6] }' $< | tr -d '";' > $@
 
 paralogs_miRNA_couples.tsv: human_paralogs_biomart.halved.filtered.tsv
-	translate -a -d -v -e NA dictionary.tsv 1 2 < $< | grep -vw NA > $@
+	translate -a -d -v -e XXXX dictionary.tsv 1 2 < $< | grep -vw XXXX > $@
 
 
 

@@ -54,33 +54,13 @@ human_paralogs_biomart.halved.filtered.joint_id.tsv: human_paralogs_biomart.halv
 	
 human_paralogs_biomart.halved.filtered.flagged.tsv: ohnologs_makino_parampriya_merged.joint_id.tsv human_paralogs_biomart.halved.filtered.joint_id.tsv
 	translate -a -d -z -v -e SSD $< 14 < $(word 2, $^) | cut -f 1-13,15 > $@
-
-ohnologs_makino_parampriya_merged.filtered.tsv: ohnologs_makino_parampriya_merged.tsv human_paralogs_biomart.halved.filtered.tsv
-	filter_2col 1 2 --both-orders $< < $(word 2, $^) > $@
-	#Ohnologs confirmed as paralogs using Ensembl
-	#NR = 1,673 (since the filter here allows 'within_species_paralog' only)
-
-ssd_paralogs.tsv: ohnologs_makino_parampriya_merged.tsv human_paralogs_biomart.halved.filtered.tsv
-	filter_2col 1 2 -v --both-orders $< < $(word 2, $^) > $@
-
-
 	
 commAncestors_list.tsv: human_paralogs_biomart.halved.filtered.tsv
 	awk -F"\t" '{print $$9}' $< | sort | uniq > $@
 	
 commAncestors_list.labeled.tsv: comm_ancestors.tsv
-	#Manual labelling with an ordinal number using https://www.ncbi.nlm.nih.gov/Taxonomy
-	
-barplot_ssdOnly.tsv: ssd_paralogs.tsv
-	awk -F"\t" '{print $$9}' $< | sort | uniq -c | awk '{print $$1 "\t" $$2}' > $@
-	
-barplot_wgdOnly.tsv: ohnologs_makino_parampriya_merged.filtered.tsv
-	awk -F"\t" '{print $$9}' $< | sort | uniq -c | awk '{print $$1 "\t" $$2}' > $@
-	
-barplot_all.tsv: human_paralogs_biomart.halved.filtered.tsv
-	awk -F"\t" '{print $$9}' $< | sort | uniq -c | awk '{print $$1 "\t" $$2}' > $@
-
-
+	#Manual labelling with an ordinal number using https://www.ncbi.nlm.nih.gov/Taxonomy.
+	#There's a file where this has been done manually in v1
 
 gencode.v41.annotation.gtf.gz:
 	wget -O $@ 'https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_41/gencode.v41.annotation.gtf.gz'
@@ -100,35 +80,22 @@ gencode.geneOnly.protcod.gtf: gencode.geneOnly.gtf
 gencode.geneOnly.miRNA.gtf: gencode.geneOnly.gtf
 	awk -F"\t" '$$9~/gene_type "miRNA"/' $< > $@
 
-gencode.geneOnly.protcod.bed: gencode.geneOnly.protcod.gtf
-	awk -F"\t" '{print $$1 "\t" $$4 "\t" $$5 "\t" $$9 "\t" "NA" "\t" $$7}' $< > $@
+##################################gtf2bed conversion using gff2tab (super OP tool from ircc)##################################################################
+%.bed: %.gtf                                                                                                                                               
+	cat $< | gff2tab gene_type gene_id gene_name | awk '{print $$1 "\t" $$4 "\t" $$5 "\t" substr($$10, 1, 15) "\t" $$6 "\t" $$7 "\t" $$9 "\t" $$11}' > $@
+##############################################################################################################################################################
 
-gencode.geneOnly.miRNA.bed: gencode.geneOnly.miRNA.gtf
-	awk -F"\t" '{print $$1 "\t" $$4 "\t" $$5 "\t" $$9 "\t" "NA" "\t" $$7}' $< > $@
-	
-gencode.geneOnly.miRNA_intWithProtcod.bed: gencode.geneOnly.protcod.bed gencode.geneOnly.miRNA.bed
+gencode.geneOnly.miRNA_intWithProtcod.bed: gencode.geneOnly.miRNA.bed gencode.geneOnly.protcod.bed
 	bedtools intersect -a $< -b $(word 2, $^) > $@
-	
-ohnologsCouples.tsv: ohnologs_makino_parampriya_merged.filtered.tsv
-	ln -s ./$< ./$@
 		
-ohnologsSingles.tsv: ohnologsCouples.tsv
-	awk -F"\t" '{print $$1 ; print $$2}' $< | sort | uniq > $@	
-
-gencode.geneOnly.bed: gencode.geneOnly.gtf
-	awk -F"\t" '{split($$9,a," "); print $$1 "\t" $$4 "\t" $$5 "\t" substr(a[2], 2, 15) "\t" $$6 "\t" $$7 "\t" substr($$9, length(a[2])+10, length($$9))}' $< > $@
-
-ohnologsSingles.bed: ohnologsSingles.tsv gencode.geneOnly.bed
-	filter_1col 4 $< < $(word 2, $^) > $@
-	
-protodictionary.tsv: gencode.geneOnly.miRNA_intWithProtcod.bed ohnologsSingles.bed
+protodictionary.tsv: gencode.geneOnly.miRNA_intWithProtcod.bed gencode.geneOnly.protcod.bed
 	bedtools intersect -wb -a $< -b $(word 2, $^) > $@
 	
 dictionary.tsv: protodictionary.tsv
-	awk -F"\t" '{split($$4,a," "); print $$10 "\t" substr(a[2], 2, 15) "\t" a[6] }' $< | tr -d '";' > $@
+	awk -F"\t" '{print $$12 "\t" $$15 "\t" $$16 "\t" $$4 "\t" $$7 "\t" $$8 }' $< > $@
 
-ohnologs_miRNA_couples.tsv: ohnologsCouples.tsv
-	translate -a -d -v -e NA dictionary.tsv 1 2 < $< | grep -vw NA > $@
+paralogs_miRNA_couples.tsv: human_paralogs_biomart.halved.filtered.flagged.tsv
+	translate -a -d -v -e XXXXXX dictionary.tsv 1 2 < $< | grep -vw XXXXXX > $@
 
 
 
