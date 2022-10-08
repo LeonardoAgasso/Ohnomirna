@@ -45,7 +45,7 @@ human_paralogs_biomart.halved.filtered.tsv: human_paralogs_biomart.tsv
 	| cut -f 1,3- > $@
 	#Filtering and halving consists in picking paralogs and consider just A-B (since both A-B and B-A are present)
 	#Second column is removed since it contains the gene_id with the Ensembl version (useless in our work)
-	#"within_species_paralog" (see https://www.ensembl.org/info/website/glossary.html for the reason)
+	#"within_species_paralog" and "other_paralog" (see https://www.ensembl.org/info/website/glossary.html for the reason)
 	#NR = 1,780,166
 	
 human_paralogs_biomart.halved.filtered.joint_id.tsv: human_paralogs_biomart.halved.filtered.tsv
@@ -83,7 +83,7 @@ gencode.geneOnly.miRNA.gtf: gencode.geneOnly.gtf
 	awk -F"\t" '$$9~/gene_type "miRNA"/' $< > $@
 	#NR = 1,879
 
-##################################gtf2bed conversion using gff2tab (super OP tool from ircc)##################################################################
+################################  gtf2bed conversion using gff2tab (super OP tool from ircc)  ################################################################
 %.bed: %.gtf                                                                                                                                               
 	cat $< | gff2tab gene_type gene_id gene_name | awk '{print $$1 "\t" $$4 "\t" $$5 "\t" substr($$10, 1, 15) "\t" $$6 "\t" $$7 "\t" $$9 "\t" $$11}' > $@
 ##############################################################################################################################################################
@@ -91,12 +91,22 @@ gencode.geneOnly.miRNA.gtf: gencode.geneOnly.gtf
 gencode.geneOnly.miRNA_intWithProtcod.bed: gencode.geneOnly.miRNA.bed gencode.geneOnly.protcod.bed
 	bedtools intersect -a $< -b $(word 2, $^) > $@
 	#NR = 1,278
+
+gencode.geneOnly.miRNA_intWithGenes.bed: gencode.geneOnly.miRNA.bed gencode.geneOnly.bed
+	bedtools intersect -a $< -b $(word 2, $^) > $@
+	#NR = 3,845
 		
-protodictionary.tsv: gencode.geneOnly.miRNA_intWithProtcod.bed gencode.geneOnly.protcod.bed
+protodictionary.protcod.tsv: gencode.geneOnly.miRNA_intWithProtcod.bed gencode.geneOnly.protcod.bed
 	bedtools intersect -wb -a $< -b $(word 2, $^) > $@
 	#NR = 1,444
 	
-dictionary.tsv: protodictionary.tsv
+protodictionary.genes.tsv: gencode.geneOnly.miRNA_intWithGenes.bed gencode.geneOnly.bed
+	bedtools intersect -wb -a $< -b $(word 2, $^) > $@
+	#NR = 8,639
+
+dictionary.geneNames.tsv: protodictionary.tsv
+
+dictionary.miRNA.tsv: protodictionary.tsv
 	awk -F"\t" '{print $$12 "\t" $$15 "\t" $$16 "\t" $$4 "\t" $$7 "\t" $$8 }' $< > $@
 	#NR = 1,444
 
