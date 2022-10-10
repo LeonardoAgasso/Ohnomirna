@@ -104,10 +104,8 @@ protodictionary.genes.tsv: gencode.geneOnly.miRNA_intWithGenes.bed gencode.geneO
 	bedtools intersect -wb -a $< -b $(word 2, $^) > $@
 	#NR = 8,639
 
-dictionary.geneNames.tsv: protodictionary.tsv
-
 dictionary.miRNA.tsv: protodictionary.tsv
-	awk -F"\t" '{print $$12 "\t" $$15 "\t" $$16 "\t" $$4 "\t" $$7 "\t" $$8 }' $< > $@
+	awk -F"\t" '{print $$12 "\t" $$15 "\t" $$16 "\t" $$4 "\t" $$7 "\t" $$8}' $< > $@
 	#NR = 1,444
 
 paralogs_miRNA_couples.tsv: human_paralogs_biomart.halved.filtered.flagged.tsv

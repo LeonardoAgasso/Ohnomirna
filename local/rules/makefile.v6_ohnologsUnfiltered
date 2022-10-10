@@ -82,28 +82,19 @@ dic.geneId_geneName_geneType.tsv: gencode.geneOnly.gtf
 	
 gencode.geneOnly.miRNA_intWithGenes.bed: gencode.geneOnly.miRNA.bed gencode.geneOnly.bed
 	bedtools intersect -a $< -b $(word 2, $^) > $@
+	#NR = 3,845
 	
-ohnologsCouples.tsv: ohnologs_makino_parampriya_merged.filtered.tsv
-	ln -s ./$< ./$@
-		
-ohnologsSingles.tsv: ohnologsCouples.tsv
-	awk -F"\t" '{print $$1 ; print $$2}' $< | sort | uniq > $@	
-
-gencode.geneOnly.bed: gencode.geneOnly.gtf
-	awk -F"\t" '{split($$9,a," "); print $$1 "\t" $$4 "\t" $$5 "\t" substr(a[2], 2, 15) "\t" $$6 "\t" $$7 "\t" substr($$9, length(a[2])+10, length($$9))}' $< > $@
-
-
-ohnologsSingles.bed: ohnologsSingles.tsv gencode.geneOnly.bed
-	filter_1col 4 $< < $(word 2, $^) > $@
-	
-protodictionary.tsv: gencode.geneOnly.miRNA_intWithProtcod.bed ohnologsSingles.bed
-	bedtools intersect -wb -a $< -b $(word 2, $^) > $@
+protodictionary.tsv: gencode.geneOnly.miRNA_intWithGenes.bed gencode.geneOnly.bed
+	bedtools intersect -wb -a $< -b $(word 2, $^) | awk -F"\t" '$$15!="miRNA"' > $@
 	
 dictionary.tsv: protodictionary.tsv
-	awk -F"\t" '{split($$4,a," "); print $$10 "\t" substr(a[2], 2, 15) "\t" a[6] }' $< | tr -d '";' > $@
+	awk -F"\t" '{print $$12 "\t" $$7 "\t" $$8 "\t" $$4}' $< | sort | uniq > $@
 
-ohnologs_miRNA_couples.tsv: ohnologsCouples.tsv
-	translate -a -d -v -e NA dictionary.tsv 1 2 < $< | grep -vw NA > $@
+ohnologs_makino_parampriya_merged.flagged.geneNames.inverted.tsv: ohnologs_makino_parampriya_merged.flagged.geneNames.tsv
+	awk -F"\t" 'BEGIN {OFS="\t"} {s = $$3; $$3 = $$1; $$1 = s; r = $$6; $$6 = $$4; $$4 = r; print}' $< > $@
+
+ohnologs_miRNA_couples.tsv: ohnologs_makino_parampriya_merged.flagged.geneNames.inverted.tsv
+	translate -a -d -v -e XXXXXX dictionary.tsv 3 6 < $< | grep -vw XXXXXX > $@
 
 
 
