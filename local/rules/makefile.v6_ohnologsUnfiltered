@@ -96,5 +96,6 @@ ohnologs_makino_parampriya_merged.flagged.geneNames.inverted.tsv: ohnologs_makin
 ohnologs_miRNA_couples.tsv: ohnologs_makino_parampriya_merged.flagged.geneNames.inverted.tsv
 	translate -a -d -v -e XXXXXX dictionary.tsv 3 6 < $< | grep -vw XXXXXX > $@
 
-
+hsapiens_miRNA.gff3:
+	wget -O hsapiens_miRNA.gff3 'https://www.mirbase.org/ftp/CURRENT/genomes/hsa.gff3'
 
