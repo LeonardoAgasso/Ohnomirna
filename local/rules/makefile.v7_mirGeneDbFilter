@@ -121,9 +121,9 @@ mirgenedb2.1_hsa.gff:
 	wget -O $@ 'https://mirgenedb.org/gff/hsa?sort=pos&all=1'
 	#NR = 1,703
 	
-mirgenedb2.1_hsa.alias.gff: mirgenedb2.1_hsa.gff
-	cat $< | perl -lne 'if(m/(.*)ID=(.*);Alias=(.*)$$/) {print "$$1\t$$2\t$$3"}' > $@
-
+mirgenedb2.1_hsa.id_alias.gff: mirgenedb2.1_hsa.gff
+	cat $< | perl -lne 'if(m/(.*)ID=(.*);Alias=(.*)$$/) {print "$$1\t$$2\t$$3"} elsif(m/(.*)ID=(.*)$$/) {print "$$1\t$$2"}' > $@
+	#NR = 1,700  (3 rows were comment)
 
 
 
