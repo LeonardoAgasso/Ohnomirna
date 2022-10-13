@@ -74,7 +74,7 @@ gencode.geneOnly.gtf: gencode.gtf
 gencode.geneOnly.miRNA.gtf: gencode.geneOnly.gtf
 	awk -F"\t" '$$9~/gene_type "miRNA"/' $< > $@
 	#NR = 1,879
-	
+		
 dic.geneId_geneName_geneType.tsv: gencode.geneOnly.gtf
 	cat $< | gff2tab gene_id gene_name gene_type | \
 	awk -F"\t" '{split($$9,a,"."); print a[1] "\t" $$10 "\t" $$11 }' > $@
@@ -96,8 +96,33 @@ ohnologs_makino_parampriya_merged.flagged.geneNames.inverted.tsv: ohnologs_makin
 ohnologs_miRNA_couples.tsv: ohnologs_makino_parampriya_merged.flagged.geneNames.inverted.tsv
 	translate -a -d -v -e XXXXXX dictionary.tsv 3 6 < $< | grep -vw XXXXXX > $@
 
+hsa.gff3:
+	wget -O $@ 'https://www.mirbase.org/ftp/CURRENT/genomes/hsa.gff3'
 
+hsa.clean.gff3: hsa.gff3
+	awk -F"\t" 'NR>13' $< > $@
+	#NR = 4,801
 
+#primary transcripts from mirBase
+pt.bed.id_alias_hgnc_name.tsv: hsa.clean.gff3
+	cat $< | perl -lne 'if(m/(.*)ID=(MI\d+).*Alias=(MI\d+).*Name=hsa-mir-(.*)$$/){$$s=uc("MIR$$4"); print "$$1\t$$2\t$$3\t$$s\thsa-mir-$$4"} if(m/(.*)ID=(MI\d+).*Alias=(MI\d+).*Name=hsa-let-(.*)$$/){$$s=uc("MIRLET$$4"); print "$$1\t$$2\t$$3\t$s\thsa-let-$$4"}' > $@
+	#NR = 1,918
+
+#mature miRNAS from mirBase ("ptder"=primary transcript from which the mature miRNA derives)
+mm.bed.id_alias_hgnc_name_ptder.tsv: hsa.clean.gff3
+	cat $< | perl -lne 'if(m/(.*)ID=(MIMAT\d+).*Alias=(MIMAT\d+).*Name=hsa-miR-(.*);Derives_from=(.*)$$/){$$s=uc("MIR$$4"); print "$$1\t$$2\t$$3\t$$s\thsa-miR-$$4\t$$5"} if(m/(.*)ID=(MIMAT\d+).*Alias=(MIMAT\d+).*Name=hsa-let-(.*);Derives_from=(.*)$$/){$$s=uc("MIRLET$$4"); print "$$1\t$$2\t$$3\t$$s\thsa-let-$$4\t$$5"}' > $@
+	#NR = 2,883
+
+mirgenedb2.1_hsa.bed:
+	wget -O $@ 'https://mirgenedb.org/static/data/hsa/hsa-all.bed'
+	#NR = 5,672
+
+mirgenedb2.1_hsa.gff:
+	wget -O $@ 'https://mirgenedb.org/gff/hsa?sort=pos&all=1'
+	#NR = 1,703
+	
+mirgenedb2.1_hsa.alias.gff: mirgenedb2.1_hsa.gff
+	cat $< | perl -lne 'if(m/(.*)ID=(.*);Alias=(.*)$$/) {print "$$1\t$$2\t$$3"}' > $@
 
 
 
