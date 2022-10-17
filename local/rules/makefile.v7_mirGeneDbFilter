@@ -60,6 +60,7 @@ ohnologs_makino_parampriya_merged.flagged.geneNames.tsv: dic.geneId_geneName_gen
 	cat $< | gff2tab gene_type gene_id gene_name | awk '{print $$1 "\t" $$4 "\t" $$5 "\t" substr($$10, 1, 15) "\t" $$6 "\t" $$7 "\t" $$9 "\t" $$11}' > $@
 ##############################################################################################################################################################
 
+
 gencode.gtf.gz:
 	wget -O $@ 'https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_41/gencode.v41.annotation.gtf.gz'
 	
@@ -74,27 +75,58 @@ gencode.geneOnly.gtf: gencode.gtf
 gencode.geneOnly.miRNA.gtf: gencode.geneOnly.gtf
 	awk -F"\t" '$$9~/gene_type "miRNA"/' $< > $@
 	#NR = 1,879
+	
+gencode.geneOnly.miRNA.flattened.bed: gencode.geneOnly.miRNA.bed
+	cat $< | perl -lne 'if(m/(.*)MIR(.[^-]*)-(.*)$$/){print "$$1MIR$$2$$3"} elsif(m/(.*)$$/){print "$$1"}' > $@
+	#NR = 1,879
 		
 dic.geneId_geneName_geneType.tsv: gencode.geneOnly.gtf
 	cat $< | gff2tab gene_id gene_name gene_type | \
 	awk -F"\t" '{split($$9,a,"."); print a[1] "\t" $$10 "\t" $$11 }' > $@
 	#NR = 61,852
 	
-gencode.geneOnly.miRNA_intWithGenes.bed: gencode.geneOnly.miRNA.bed gencode.geneOnly.bed
+gencode.geneOnly.miRNA_intWithGenes.mirgeneFlagged.bed: gencode.geneOnly.miRNA.mirgeneFlagged.bed gencode.geneOnly.bed
 	bedtools intersect -a $< -b $(word 2, $^) > $@
 	#NR = 3,845
 	
-protodictionary.tsv: gencode.geneOnly.miRNA_intWithGenes.bed gencode.geneOnly.bed
-	bedtools intersect -wb -a $< -b $(word 2, $^) | awk -F"\t" '$$15!="miRNA"' > $@
+gencode.geneOnly.miRNA_intWithGenes.mirgeneFlagged.flattened.bed: gencode.geneOnly.miRNA.mirgeneFlagged.flattened.bed gencode.geneOnly.bed
+	bedtools intersect -a $< -b $(word 2, $^) > $@
+	#NR = 3,845
+	
+protodictionary.tsv: gencode.geneOnly.miRNA_intWithGenes.mirgeneFlagged.bed gencode.geneOnly.bed
+	bedtools intersect -wb -a $< -b $(word 2, $^) | awk -F"\t" '$$16!="miRNA"' > $@
+	
+protodictionary.flattened.tsv: gencode.geneOnly.miRNA_intWithGenes.mirgeneFlagged.flattened.bed gencode.geneOnly.bed
+	bedtools intersect -wb -a $< -b $(word 2, $^) | awk -F"\t" '$$16!="miRNA"' > $@
 	
 dictionary.tsv: protodictionary.tsv
-	awk -F"\t" '{print $$12 "\t" $$7 "\t" $$8 "\t" $$4}' $< | sort | uniq > $@
+	awk -F"\t" '{print $$13 "\t" $$7 "\t" $$8 "\t" $$9 "\t" $$4}' $< | sort | uniq > $@
+	#NR = 1,850
+	
+dictionary.flattened.tsv: protodictionary.flattened.tsv
+	awk -F"\t" '{print $$13 "\t" $$7 "\t" $$8 "\t" $$9 "\t" $$4}' $< | sort | uniq > $@
+	#NR = 1,850
+	
+dictionary.reduced.tsv: protodictionary.tsv
+	awk -F"\t" '$$9=="mirgene_conf" {print $$13 "\t" $$7 "\t" $$8 "\t" $$9 "\t" $$4}' $< | sort | uniq > $@
+	#NR = 424
+	
+dictionary.flattened.reduced.tsv: protodictionary.flattened.tsv
+	awk -F"\t" '$$9=="mirgene_conf" {print $$13 "\t" $$7 "\t" $$8 "\t" $$9 "\t" $$4}' $< | sort | uniq > $@
+	#NR = 482
 
 ohnologs_makino_parampriya_merged.flagged.geneNames.inverted.tsv: ohnologs_makino_parampriya_merged.flagged.geneNames.tsv
 	awk -F"\t" 'BEGIN {OFS="\t"} {s = $$3; $$3 = $$1; $$1 = s; r = $$6; $$6 = $$4; $$4 = r; print}' $< > $@
 
-ohnologs_miRNA_couples.tsv: ohnologs_makino_parampriya_merged.flagged.geneNames.inverted.tsv
+ohnologs_miRNA.mirgeneFlagged_couples.tsv: ohnologs_makino_parampriya_merged.flagged.geneNames.inverted.tsv
 	translate -a -d -v -e XXXXXX dictionary.tsv 3 6 < $< | grep -vw XXXXXX > $@
+
+paralogs_miRNA.mirgeneFlagged_couples.tsv: human_paralogs_biomart.halved.filtered.flagged.tsv
+	translate -a -d -v -e XXXXXX dictionary.reduced.tsv 1 2 < $< | grep -vw XXXXXX > $@
+	
+paralogs_miRNA.mirgeneFlagged.flattened_couples.tsv: human_paralogs_biomart.halved.filtered.flagged.tsv
+	translate -a -d -v -e XXXXXX dictionary.flattened.reduced.tsv 1 2 < $< | grep -vw XXXXXX > $@
+
 
 hsa.gff3:
 	wget -O $@ 'https://www.mirbase.org/ftp/CURRENT/genomes/hsa.gff3'
@@ -112,6 +144,9 @@ pt.bed.id_alias_hgnc_name.tsv: hsa.clean.gff3
 mm.bed.id_alias_hgnc_name_ptder.tsv: hsa.clean.gff3
 	cat $< | perl -lne 'if(m/(.*)ID=(MIMAT\d+).*Alias=(MIMAT\d+).*Name=hsa-miR-(.*);Derives_from=(.*)$$/){$$s=uc("MIR$$4"); print "$$1\t$$2\t$$3\t$$s\thsa-miR-$$4\t$$5"} if(m/(.*)ID=(MIMAT\d+).*Alias=(MIMAT\d+).*Name=hsa-let-(.*);Derives_from=(.*)$$/){$$s=uc("MIRLET$$4"); print "$$1\t$$2\t$$3\t$$s\thsa-let-$$4\t$$5"}' > $@
 	#NR = 2,883
+	
+bed.id_alias_hgnc_name_ptder.tsv: pt.bed.id_alias_hgnc_name.tsv mm.bed.id_alias_hgnc_name_ptder.tsv
+	cat $< $(word 2, $^) > $@
 
 mirgenedb2.1_hsa.bed:
 	wget -O $@ 'https://mirgenedb.org/static/data/hsa/hsa-all.bed'
@@ -125,7 +160,44 @@ mirgenedb2.1_hsa.id_alias.gff: mirgenedb2.1_hsa.gff
 	cat $< | perl -lne 'if(m/(.*)ID=(.*);Alias=(.*)$$/) {print "$$1\t$$2\t$$3"} elsif(m/(.*)ID=(.*)$$/) {print "$$1\t$$2"}' > $@
 	#NR = 1,700  (3 rows were comment)
 
+mirgene_id.tsv: mirgenedb2.1_hsa.id_alias.gff
+	awk -F"\t" '$$11!="" {print $$11}' $< > $@
+	#NR = 1,598
+	
+dic.bed.id_alias_hgnc_name_ptder.tsv: bed.id_alias_hgnc_name_ptder.tsv
+	awk -F"\t" '{print $$10 "\t" $$11 "\t" $$12 "\t" $$13 "\t" $$14}' $< > $@
+	
+dic.mirgenedb.id_hgnc.tsv: dic.bed.id_alias_hgnc_name_ptder.tsv mirgene_id.tsv
+	translate -d -v -e Not_in_mirbase $< 1 < $(word 2, $^) | awk -F"\t" '$$2!="" {print $$2 "\t" "mirgene_conf"}' | sort | uniq > $@
+	#NR = 1,297
+	
+dic.mirgenedb.id_hgnc.flattened.tsv: dic.mirgenedb.id_hgnc.tsv
+	cat $< | perl -lne 'if(m/MIR(.[^-]*)-(.*)$$/){print "MIR$$1$$2"} elsif(m/(.*)$$/) {print "$$1"}' > $@
+	#NR = 
+	
+gencode.geneOnly.miRNA.mirgeneFlagged.bed: dic.mirgenedb.id_hgnc.tsv gencode.geneOnly.miRNA.bed
+	translate -a -d -v -e mirgene_not_conf $< 8 < $(word 2, $^) > $@
+	
+gencode.geneOnly.miRNA.mirgeneFlagged.flattened.bed: dic.mirgenedb.id_hgnc.flattened.tsv gencode.geneOnly.miRNA.flattened.bed
+	translate -a -d -v -e mirgene_not_conf $< 8 < $(word 2, $^) > $@
 
 
 
+#______________________________________________PARTE RELATIVA A TARBASE V8_______________________________________________________
+
+TarBase_v8_download.txt:
+	#Request and download the database from: https://dianalab.e-ce.uth.gr/html/diana/web/index.php?r=tarbasev8/index and extract it
+	#NR = 927,120
+	
+TarBase_v8.hsa.txt: TarBase_v8_download.txt
+	awk -F"\t" '$$4=="Homo sapiens" || $$4=="species"' $< > $@
+	#NR = 590,218		(1 row is the header)
+
+TarBase_v8.hsa.miRNA_interactNumber.txt: TarBase_v8.hsa.txt
+	awk -F"\t" 'NR>1 {print $$3}' $< | sort | uniq -c > $@
+	#NR = 1,084
+	
+TarBase_v8.hsa.miRNA_interactNumber_name.txt: TarBase_v8.hsa.miRNA_interactNumber.txt
+	cat $< | perl -lne 'if(m/(.*)hsa-miR-(.*)-3p$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2-3p\t$$a"} elsif(m/(.*)hsa-miR-(.*)-5p$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2-5p\t$$a"} elsif(m/(.*)hsa-miR-(.*)$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2\t$$a"} elsif(m/(.*)hsa-let-(.*)-3p$$/) {$$a=uc("MIRLET$$2"); print "$$1\thsa-let-$$2-3p\t$$a"} elsif(m/(.*)hsa-let-(.*)-5p$$/) {$$a=uc("MIRLET$$2"); print "$$1\thsa-let-$$2-5p\t$$a"} elsif(m/(.*)hsa-let-(.*)$$/) {$$a=uc("MIRLET$$2"); print "$$1\thsa-let-$$2\t$$a"}' | sort -n -r  > $@
+	#NR  1,084
 
