@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Query>
+<Query  virtualSchemaName = "default" formatter = "TSV" header = "0" uniqueRows = "0" count = "" datasetConfigVersion = "0.6" >
+
+	<Dataset name = "mmusculus_gene_ensembl" interface = "default" >
+		<Attribute name = "ensembl_gene_id" />
+		<Attribute name = "ensembl_gene_id_version" />
+		<Attribute name = "mmusculus_paralog_ensembl_gene" />
+		<Attribute name = "mmusculus_paralog_associated_gene_name" />
+		<Attribute name = "mmusculus_paralog_chrom_start" />
+		<Attribute name = "mmusculus_paralog_ensembl_peptide" />
+		<Attribute name = "mmusculus_paralog_chromosome" />
+		<Attribute name = "mmusculus_paralog_chrom_end" />
+		<Attribute name = "mmusculus_paralog_canonical_transcript_protein" />
+		<Attribute name = "mmusculus_paralog_subtype" />
+		<Attribute name = "mmusculus_paralog_orthology_type" />
+		<Attribute name = "mmusculus_paralog_perc_id" />
+		<Attribute name = "mmusculus_paralog_perc_id_r1" />
+		<Attribute name = "external_gene_name" />
+	</Dataset>
+</Query>
