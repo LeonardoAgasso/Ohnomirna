@@ -197,6 +197,16 @@ paralogs_miRNAdated.mirgeneFlagged.flattened_couples.tsv: human_paralogs_biomart
 		#NR (grep SSD) = 41
 	#(Not the precise number of couples because translet allows double translations)
 
+partial.paralogs_miRNAdated.mirgeneFlagged.flattened_couples.tsv: human_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv dictionary.flattened.reduced.miRNAdated.tsv
+	translate -a -d -j -v -e XXXXXX $(word 2, $^) 3 < $< | grep -vw XXXXXX > $@
+
+extended.paralogs_miRNAdated.mirgeneFlagged.flattened_couples.tsv: partial.paralogs_miRNAdated.mirgeneFlagged.flattened_couples.tsv dictionary.flattened.reduced.miRNAdated.tsv
+	translate -a -d -j -v -e XXXXXX $(word 2, $^) 11 < $< | grep -vw XXXXXX > $@
+	#Same as paralogs_miRNAdated.mirgeneFlagged.flattened_couples.tsv but with a join like about
+	#NR = 71
+		#NR (grep WGD) = 22
+		#NR (grep SSD) = 49
+
 # Add a date to the miRNA according to the oldest node in the gene tree
 # Create a list of miRNAs
 
@@ -209,6 +219,9 @@ dic_miRNA.dated.tsv: miRNA.2bedated.tsv
 
 dictionary.flattened.reduced.miRNAdated.tsv: dictionary.flattened.reduced.tsv dic_miRNA.dated.tsv
 	translate -a -d -v -e XXXXX $(word 2, $^) 5 < $< > $@
+
+
+
 #____________________________________________________________TARBASE V8____________________________________________________________
 
 TarBase_v8_download.txt:
@@ -217,16 +230,36 @@ TarBase_v8_download.txt:
 
 TarBase_v8.hsa.tsv: TarBase_v8_download.txt
 	awk -F"\t" '$$4=="Homo sapiens" || $$4=="species"' $< > $@
-	#NR = 420,710		(1 row is the header)	(check the number because it reduced)
+	#NR = 420,710		(1 row is the header)	(check the number because it reduced
+
+TarBase_v8.hsa.name.tsv: TarBase_v8.hsa.tsv
+	cat $< | perl -lne 'if(m/(.*)hsa-miR-(.[^"H"]*)-3p$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2-3p\t$$a"} elsif(m/(.*)hsa-miR-(.[^H]*)-5p$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2-5p\t$$a"} elsif(m/(.*)hsa-miR-(.[^H]*)$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2\t$$a"} elsif(m/(.*)hsa-let-(.[^H]*)-3p$$/) {$$a=uc("MIRLET$$2"); print "$$1\thsa-let-$$2-3p\t$$a"} elsif(m/(.*)hsa-let-(.[^H]*)-5p$$/) {$$a=uc("MIRLET$$2"); print "$$1\thsa-let-$$2-5p\t$$a"} elsif(m/(.*)hsa-let-(.[^H]*)$$/) {$$a=uc("MIRLET$$2$$3"); print "$$1\thsa-let-$$2-$$3\t$$a"}'\
+	| sort -n -r  > $@
 
 TarBase_v8.hsa.miRNA_interactNumber.tsv: TarBase_v8.hsa.tsv
 	awk -F"\t" 'NR>1 {print $$3}' $< | sort | uniq -c > $@
 	#NR = 1,074
 
 TarBase_v8.hsa.gene_miRNA_interactNumber_name.tsv: TarBase_v8.hsa.miRNA_interactNumber.tsv
-	cat $< | perl -lne 'if(m/(.*)hsa-miR-(.*)-3p$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2-3p\t$$a"} elsif(m/(.*)hsa-miR-(.*)-5p$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2-5p\t$$a"} elsif(m/(.*)hsa-miR-(.*)$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2\t$$a"} elsif(m/(.*)hsa-let-(.*)-3p$$/) {$$a=uc("MIRLET$$2"); print "$$1\thsa-let-$$2-3p\t$$a"} elsif(m/(.*)hsa-let-(.*)-5p$$/) {$$a=uc("MIRLET$$2"); print "$$1\thsa-let-$$2-5p\t$$a"} elsif(m/(.*)hsa-let-(.*)$$/) {$$a=uc("MIRLET$$2$$3"); print "$$1\thsa-let-$$2-$$3\t$$a"}' | sort -n -r  > $@
+	cat $< | perl -lne 'if(m/(.*)hsa-miR-(.*)-3p$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2-3p\t$$a"} \
+	elsif(m/(.*)hsa-miR-(.*)-5p$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2-5p\t$$a"} \
+	elsif(m/(.*)hsa-miR-(.*)$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2\t$$a"} \
+	elsif(m/(.*)hsa-let-(.*)-3p$$/) {$$a=uc("MIRLET$$2"); print "$$1\thsa-let-$$2-3p\t$$a"} \
+	elsif(m/(.*)hsa-let-(.*)-5p$$/) {$$a=uc("MIRLET$$2"); print "$$1\thsa-let-$$2-5p\t$$a"} \
+	elsif(m/(.*)hsa-let-(.*)$$/) {$$a=uc("MIRLET$$2$$3"); print "$$1\thsa-let-$$2-$$3\t$$a"}' \
+	| sort -n -r  > $@
 	#NR  1,074
 
 TarBase_v8.hsa.gene_miRNA.tsv: TarBase_v8.hsa.tsv
 	awk -F"\t" 'NR>1 {print $$2 "\t" $$3}' $< | sort | perl -lne 'if(m/(.[^(]*)' > $@
 	#NR = 420,710
+
+
+
+#___________________________________________________________NETWORK_______________________________________________________________
+
+nodes.tsv: extended.paralogs_miRNAdated.mirgeneFlagged.flattened_couples.tsv
+	awk -F"\t" '{print $$5 "\t" $$7 "\t" $$8 "\n" $$13 "\t" $$15 "\t" $$16}' $< > $@
+	#NR = 142
+
+adjacency_list.tsv:
