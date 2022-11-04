@@ -158,9 +158,11 @@ dic.mirgenedb.id_hgnc.tsv: dic.bed.id_alias_hgnc_name_ptder.tsv mirgene_id.tsv
 	translate -d -v -e Not_in_mirbase $< 1 < $(word 2, $^) | awk -F"\t" '$$2!="" {print $$2 "\t" "mirgene_conf"}' | sort | uniq > $@
 	#NR = 1,297
 
-dic.mirgenedb.id_hgnc.3p5premoved.tsv: dic.mirgenedb.id_hgnc.tsv 		# prima era dic.mirgenedb.id_hgnc.flattened.tsv
-	cat $< | perl -lane 'BEGIN{$$,="\t"} $$F[0]=~s/-([35]P)$$//; print @F' | sort | uniq > $@
-	# -3P and -5P are here removed. Other numbers preceeded by "-" are kept
+dic.mirgenedb.id_hgnc.3p5premoved.tsv: dic.mirgenedb.id_hgnc.tsv
+	cat $< | perl -lane 'BEGIN{$$,="\t"} $$F[0]=~s/-([35]P)$$//; print @F' \
+	| perl -lane 'BEGIN{$$,="\t"} $$F[0]=~s/([A-Z])-(\d+)$$/$$1$$2/; print @F' | sort | uniq > $@
+	#-3P and -5P are here removed.
+	#Other numbers preceeded by "-" are kept except for A-[0-9], B-[0-9], C-[0-9] ecc. (to be consistent with gencode)
 
 gencode.geneOnly.miRNA.mirgeneFlagged.bed: dic.mirgenedb.id_hgnc.3p5premoved.tsv gencode.geneOnly.miRNA.bed
 	translate -a -d -v -e mirgene_not_conf $< 8 < $(word 2, $^) > $@
@@ -199,7 +201,7 @@ paralogs_miRNAdated.mirgeneFlagged_couples.tsv: human_paralogs_biomart.halved.fi
 partial.paralogs_miRNAdated.mirgeneFiltered_couples.tsv: human_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv dictionary.reduced.miRNAdated.tsv
 	translate -a -d -j -v -e XXXXXX $(word 2, $^) 3 < $< | grep -vw XXXXXX > $@
 
-extended.paralogs_miRNAdated.mirgeneFiltered_couples.tsv: partial.paralogs_miRNAdated.mirgeneFlagged_couples.tsv dictionary.reduced.miRNAdated.tsv
+extended.paralogs_miRNAdated.mirgeneFiltered_couples.tsv: partial.paralogs_miRNAdated.mirgeneFiltered_couples.tsv dictionary.reduced.miRNAdated.tsv
 	translate -a -d -j -v -e XXXXXX $(word 2, $^) 11 < $< | grep -vw XXXXXX > $@
 	#Same as paralogs_miRNAdated.mirgeneFlagged.flattened_couples.tsv but with a join like about
 	#NR = 71
