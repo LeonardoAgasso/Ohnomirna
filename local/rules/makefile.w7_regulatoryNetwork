@@ -2,36 +2,40 @@
 
 #starting file: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv comes from v7_mirGeneDBFilter
 
-################################	gtf2bed converter using gff2tab (super OP tool from ircc)	###################################
 %.bed: %.gtf
 	cat $< | gff2tab gene_type gene_id gene_name | awk '{print $$1 "\t" $$4 "\t" $$5 "\t" substr($$10, 1, 15) "\t" $$6 "\t" $$7 "\t" $$9 "\t" $$11}' > $@
-###############################################################################################################################
 
-ohnomirnaBC_ensg_hg.tsv: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv
+WGDmirnaBC_ensg_hg.tsv: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv
 	awk -F"\t" '$$17=="WGD" && $$6=="mirgene_conf" && $$14=="mirgene_conf" {print $$5 "\t" $$7 "\t" $$1 "\n" $$13 "\t" $$15 "\t" $$9 }' $< \
 	| sort | uniq > $@
 	#BC stands for "Both Confirmed" from MiRGeneDB database
-	#NR = 28
+	# NR = 28q
 
-paralogmirnaBC_ensg_hg.tsv: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv
+SSDmirnaBC_ensg_hg.tsv: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv
 	awk -F"\t" '$$17=="SSD" && $$6=="mirgene_conf" && $$14=="mirgene_conf" {print $$5 "\t" $$7 "\t" $$1 "\n" $$13 "\t" $$15 "\t" $$9 }' $< \
 	| sort | uniq > $@
 	#BC stands for "Both Confirmed" from MiRGeneDB database
-	#NR = 45
+	# NR = 45
+
+WGDSSDmirnaBC_ensg_hg.tsv: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv
+	awk -F"\t" '$$6=="mirgene_conf" && $$14=="mirgene_conf" {print $$5 "\t" $$7 "\t" $$1 "\n" $$13 "\t" $$15 "\t" $$9 }' $< \
+	| sort | uniq > $@
 
 %_filter.tsv: %BC_ensg_hg.tsv
 	awk -F"\t" '{print $$1}' $< > $@
+	# WGDmirna_filter has 28 miRNAs
 
 TarBase_v8_download.txt:
 	#Request and download the database from: https://dianalab.e-ce.uth.gr/html/diana/web/index.php?r=tarbasev8/index and extract it
-	#NR = 927,120
+	# NR = 927,120
 
 TarBase_v8.hsa.tsv: TarBase_v8_download.txt
 	awk -F"\t" '$$4=="Homo sapiens" || $$4=="species"' $< > $@
-	#NR = 420,710		(1 row is the header)	(check the number because it reduced
+	# NR = 420,710		(1 row is the header)	(check the number because it reduced
 
 TarBase_v8.hsa.normDir.tsv: TarBase_v8.hsa.tsv
 	awk -F"\t" '$$7!="Cancer/Malignant" && $$9=="POSITIVE" && $$10=="DIRECT" {print $$0}' $< > $@
+	# NR = 278.893
 
 hsa.gff3:
 	wget -O $@ 'https://www.mirbase.org/ftp/CURRENT/genomes/hsa.gff3'
@@ -40,10 +44,69 @@ mirna.prim_transcripts.gff3: hsa.gff3
 	awk -F"\t" '$$3=="miRNA_primary_transcript" {print $$0}' $< > $@
 
 mirna.prim_transcripts.tsv: mirna.prim_transcripts.gff3
-	cat $< | perl -lane 'BEGIN{$$,="\t"} @spl=split(";",$$F[8]); $$spl[0]=~s/^ID=(.*)/$$1/; $$spl[1]=~s/^Alias=(.*)/$$1/; $$spl[2]=~s/^Name=(.*)/$$1/; {print @spl}' > $@
+	cat $< | perl -lane 'BEGIN{$$,="\t"} @spl=split(";",$$F[8]); $$spl[0]=~s/^ID=(.*)/$$1/; $$spl[1]=~s/^Alias=(.*)/$$1/; $$spl[2]=~s/^Name=(.*)/$$1/; {print "$$spl[2]\t$$spl[1]"}' > $@
+	# NR = 1918
 
 mirna.mature.gff3: hsa.gff3
 	awk -F"\t" '$$3=="miRNA" {print $$0}' $< > $@
 
 mirna.mature.tsv: mirna.mature.gff3
-	cat $< | perl -lane 'BEGIN{$$,="\t"} @spl=split(";",$$F[8]); $$spl[0]=~s/^ID=(.*)/$$1/; $$spl[1]=~s/^Alias=(.*)/$$1/; $$spl[2]=~s/^Name=(.*)/$$1/; $$spl[3]=~s/^Derives_from=(.*)/$$1/; {print @spl}' > $@
+	cat $< | perl -lane 'BEGIN{$$,="\t"} @spl=split(";",$$F[8]); $$spl[0]=~s/^ID=(.*)/$$1/; $$spl[1]=~s/^Alias=(.*)/$$1/; $$spl[2]=~s/^Name=(.*)/$$1/; $$spl[3]=~s/^Derives_from=(.*)/$$1/; {print @spl}' \
+	| awk -F"\t" '{t=$$4; $$4=$$1; $$1=t; r=$$2; $$2=$$3; $$3=r; print $$1"\t"$$2"\t"$$3}' > $@
+	# placed the janitor miRNA first then the name of the mature mirna
+	# NR = 2883
+
+ensembl.mirna_ensg_mirbase.tsv:
+	wget -O $@ --post-file ../../local/src/mart_hsamirna_query.xml 'http://www.ensembl.org/biomart/martservice'
+	# NR = 2.145   (lots of empty records)
+
+ensembl.mirna_ensg_mirbase.clean.tsv: ensembl.mirna_ensg_mirbase.tsv
+	awk -F"\t" '$$2!="" && $$3!="" && $$4!="" {print $$0}' $< > $@
+	# NR = 2.110
+
+mirnaGene_primTrans.tsv: mirna.prim_transcripts.tsv ensembl.mirna_ensg_mirbase.clean.tsv
+	translate -a -d -j -v -e XXXXX $< 3 <$(word 2, $^) | grep -vw XXXXX | awk -F"\t" '$$4==$$5 {print $$1"\t"$$2"\t"$$3"\t"$$4}' > $@
+	# NR = 2.110
+
+mirnaGene_primTrans_matureMirna.tsv: mirna.mature.tsv mirnaGene_primTrans.tsv
+	translate -a -d -j -v -e XXXXX $< 4 <$(word 2, $^) | grep -vw XXXXX | awk -F"\t" '{print $$0}' > $@
+	# NR = 3.164
+	# for a total of 1839 mirna Gene, some of the which have more than a transcript, and not every transcript have 2 mature miRNAs
+
+
+WGDmirnaGene_primTrans_matureMirna.tsv: mirnaGene_primTrans_matureMirna.tsv WGDmirna_filter.tsv
+	filter_1col 2 $(word 2, $^) <mirnaGene_primTrans_matureMirna.tsv > $@
+	# NR = 54
+	# for a total of 28 WGDmirna genes
+
+matureWGDmirna_WGDmirnaGene.tsv: WGDmirnaGene_primTrans_matureMirna.tsv
+	awk -F"\t" '{print $$5"\t"$$2}' $< | sort > $@
+	# kept the janitor gene because some mature miRNA are the same but come from different genes
+	# (e.g. MIR218-1 and MIR218-2 both mature in a hsa-miR-218-5p)
+	# NR = 54
+
+matureWGDmirna_WGDmirnaGene_hostGene.tsv: WGDmirnaBC_ensg_hg.tsv matureWGDmirna_WGDmirnaGene.tsv
+	translate -a -d -j -v -e XXXXX $< 2 <$(word 2, $^) | grep -vw XXXXX | awk -F"\t" '{print $$1"\t"$$2"\t"$$4}' > $@
+	# NR = 54
+
+TarBase_v8.targetGene_matureWGDmirna_WGDmirnaGene_hostGene.tsv: matureWGDmirna_WGDmirnaGene_hostGene.tsv TarBase_v8.hsa.tsv
+	translate -a -d -j -v -e XXXXX $< 3 <$(word 2, $^) | grep -vw XXXXX > $@
+
+
+WGDSSDmirnaGene_primTrans_matureMirna.tsv: mirnaGene_primTrans_matureMirna.tsv WGDSSDmirna_filter.tsv
+	filter_1col 2 $(word 2, $^) <mirnaGene_primTrans_matureMirna.tsv > $@
+	# NR = 54
+	# for a total of 28 WGDmirna genes
+
+matureWGDSSDmirna_WGDSSDmirnaGene.tsv: WGDSSDmirnaGene_primTrans_matureMirna.tsv
+	awk -F"\t" '{print $$5"\t"$$2}' $< | sort > $@
+	# kept the janitor gene because some mature miRNA are the same but come from different genes
+	# (e.g. MIR218-1 and MIR218-2 both mature in a hsa-miR-218-5p)
+	# NR = 54
+
+matureWGDSSDmirna_WGDSSDmirnaGene_hostGene.tsv: WGDSSDmirnaBC_ensg_hg.tsv matureWGDSSDmirna_WGDSSDmirnaGene.tsv
+	translate -a -d -j -v -e XXXXX $< 2 <$(word 2, $^) | grep -vw XXXXX | awk -F"\t" '{print $$1"\t"$$2"\t"$$4}' > $@
+	# NR = 54
+
+TarBase_v8.targetGene_matureWGDSSDmirna_WGDSSDmirnaGene_hostGene.tsv: matureWGDSSDmirna_WGDSSDmirnaGene_hostGene.tsv TarBase_v8.hsa.tsv
+	translate -a -d -j -v -e XXXXX $< 3 <$(word 2, $^) | grep -vw XXXXX > $@
