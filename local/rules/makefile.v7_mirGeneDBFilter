@@ -183,6 +183,9 @@ dictionary.miRNAdated.tsv: dictionary.tsv dic_miRNA.dated.tsv
 human_paralogs_biomart.halved.filtered.flagged.geneNames.tsv: dic.geneId_geneName_geneType.tsv human_paralogs_biomart.halved.filtered.flagged.tsv
 	translate -a -d -z -v -e ERROR $< 1 2 < $(word 2, $^) | grep -v ERROR > $@
 	#NR = 1,771,967
+	#We count protein-coding SSD on this file using
+	# cat human_paralogs_biomart.halved.filtered.flagged.geneNames.tsv | awk -F"\t" '$3=="protein_coding" && $6=="protein_coding" && $18=="SSD" {print $0}' | wc -l
+	#	result: 122.745 protein coding couples SSSD
 
 human_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv: human_paralogs_biomart.halved.filtered.flagged.geneNames.tsv
 	awk -F"\t" '{print $$2 "\t" $$3 "\t" $$1 "\t" $$5 "\t" $$6 "\t" $$4 "\t" $$18 "\t" $$13}' $< > $@
@@ -218,7 +221,7 @@ extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv: partial.paralogs_miRNAd
 	#NR (grep WGD) = 22
 	#NR (grep SSD) = 49
 
-# Add a date to the miRNA according to the oldest node in the gene tree
+# Add a date to the miRNA according to the oldest node in the gene tree provided by Ensembl
 # Create a list of miRNAs
 
 
@@ -254,13 +257,3 @@ TarBase_v8.hsa.gene_miRNA_interactNumber_name.tsv: TarBase_v8.hsa.miRNA_interact
 TarBase_v8.hsa.gene_miRNA.tsv: TarBase_v8.hsa.tsv
 	awk -F"\t" 'NR>1 {print $$2 "\t" $$3}' $< | sort | perl -lne 'if(m/(.[^(]*)' > $@
 	#NR = 420,710
-
-
-
-#___________________________________________________________NETWORK_______________________________________________________________
-
-nodes.tsv: extended.paralogs_miRNAdated.mirgeneFlagged.flattened_couples.tsv
-	awk -F"\t" '{print $$5 "\t" $$7 "\t" $$8 "\n" $$13 "\t" $$15 "\t" $$16}' $< > $@
-	#NR = 142
-
-adjacency_list.tsv:
