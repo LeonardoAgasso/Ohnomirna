@@ -1,0 +1,62 @@
+.DELETE_ON_ERROR:
+
+#starting file: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv comes from v7_mirGeneDBFilter
+
+%.bed: %.gtf
+	cat $< | gff2tab gene_type gene_id gene_name | awk '{print $$1 "\t" $$4 "\t" $$5 "\t" substr($$10, 1, 15) "\t" $$6 "\t" $$7 "\t" $$9 "\t" $$11}' > $@
+
+WGDmirnaBC_ensg_hg.tsv: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv
+	awk -F"\t" '$$17=="WGD" && $$6=="mirgene_conf" && $$14=="mirgene_conf" {print $$5 "\t" $$7 "\t" $$1 "\n" $$13 "\t" $$15 "\t" $$9 }' $< \
+	| sort | uniq > $@
+	#BC stands for "Both Confirmed" from MiRGeneDB database
+	# NR = 28q
+
+SSDmirnaBC_ensg_hg.tsv: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv
+	awk -F"\t" '$$17=="SSD" && $$6=="mirgene_conf" && $$14=="mirgene_conf" {print $$5 "\t" $$7 "\t" $$1 "\n" $$13 "\t" $$15 "\t" $$9 }' $< \
+	| sort | uniq > $@
+	#BC stands for "Both Confirmed" from MiRGeneDB database
+	# NR = 45
+
+WGDSSDmirnaBC_ensg_hg.tsv: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv
+	awk -F"\t" '$$6=="mirgene_conf" && $$14=="mirgene_conf" {print $$5 "\t" $$7 "\t" $$1 "\n" $$13 "\t" $$15 "\t" $$9 }' $< \
+	| sort | uniq > $@
+
+%_filter.tsv: %BC_ensg_hg.tsv
+	awk -F"\t" '{print $$1}' $< > $@
+	# WGDmirna_filter has 28 miRNAs
+
+hsa.gff3:
+	wget -O $@ 'https://www.mirbase.org/ftp/CURRENT/genomes/hsa.gff3'
+
+mirna.prim_transcripts.gff3: hsa.gff3
+	awk -F"\t" '$$3=="miRNA_primary_transcript" {print $$0}' $< > $@
+
+mirna.prim_transcripts.tsv: mirna.prim_transcripts.gff3
+	cat $< | perl -lane 'BEGIN{$$,="\t"} @spl=split(";",$$F[8]); $$spl[0]=~s/^ID=(.*)/$$1/; $$spl[1]=~s/^Alias=(.*)/$$1/; $$spl[2]=~s/^Name=(.*)/$$1/; {print "$$spl[2]\t$$spl[1]"}' > $@
+	# NR = 1918
+
+mirna.mature.gff3: hsa.gff3
+	awk -F"\t" '$$3=="miRNA" {print $$0}' $< > $@
+
+mirna.mature.tsv: mirna.mature.gff3
+	cat $< | perl -lane 'BEGIN{$$,="\t"} @spl=split(";",$$F[8]); $$spl[0]=~s/^ID=(.*)/$$1/; $$spl[1]=~s/^Alias=(.*)/$$1/; $$spl[2]=~s/^Name=(.*)/$$1/; $$spl[3]=~s/^Derives_from=(.*)/$$1/; {print @spl}' \
+	| awk -F"\t" '{t=$$4; $$4=$$1; $$1=t; r=$$2; $$2=$$3; $$3=r; print $$1"\t"$$2"\t"$$3}' > $@
+	# placed the janitor miRNA first then the name of the mature mirna
+	# NR = 2883
+
+ensembl.mirna_ensg_mirbase.tsv:
+	wget -O $@ --post-file ../../local/src/mart_hsamirna_query.xml 'http://www.ensembl.org/biomart/martservice'
+	# NR = 2.145   (lots of empty records)
+
+ensembl.mirna_ensg_mirbase.clean.tsv: ensembl.mirna_ensg_mirbase.tsv
+	awk -F"\t" '$$2!="" && $$3!="" && $$4!="" {print $$0}' $< > $@
+	# NR = 2.110
+
+mirnaGene_primTrans.tsv: mirna.prim_transcripts.tsv ensembl.mirna_ensg_mirbase.clean.tsv
+	translate -a -d -j -v -e XXXXX $< 3 <$(word 2, $^) | grep -vw XXXXX | awk -F"\t" '$$4==$$5 {print $$1"\t"$$2"\t"$$3"\t"$$4}' > $@
+	# NR = 2.110
+
+mirnaGene_primTrans_matureMirna.tsv: mirna.mature.tsv mirnaGene_primTrans.tsv
+	translate -a -d -j -v -e XXXXX $< 4 <$(word 2, $^) | grep -vw XXXXX | awk -F"\t" '{print $$0}' > $@
+	# NR = 3.164
+	# for a total of 1839 mirna Gene, some of the which have more than a transcript, and not every transcript have 2 mature miRNAs
