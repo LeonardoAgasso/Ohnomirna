@@ -5,25 +5,6 @@
 %.bed: %.gtf
 	cat $< | gff2tab gene_type gene_id gene_name | awk '{print $$1 "\t" $$4 "\t" $$5 "\t" substr($$10, 1, 15) "\t" $$6 "\t" $$7 "\t" $$9 "\t" $$11}' > $@
 
-WGDmirnaBC_ensg_hg.tsv: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv
-	awk -F"\t" '$$17=="WGD" && $$6=="mirgene_conf" && $$14=="mirgene_conf" {print $$5 "\t" $$7 "\t" $$1 "\n" $$13 "\t" $$15 "\t" $$9 }' $< \
-	| sort | uniq > $@
-	#BC stands for "Both Confirmed" from MiRGeneDB database
-	# NR = 28q
-
-SSDmirnaBC_ensg_hg.tsv: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv
-	awk -F"\t" '$$17=="SSD" && $$6=="mirgene_conf" && $$14=="mirgene_conf" {print $$5 "\t" $$7 "\t" $$1 "\n" $$13 "\t" $$15 "\t" $$9 }' $< \
-	| sort | uniq > $@
-	#BC stands for "Both Confirmed" from MiRGeneDB database
-	# NR = 45
-
-WGDSSDmirnaBC_ensg_hg.tsv: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv
-	awk -F"\t" '$$6=="mirgene_conf" && $$14=="mirgene_conf" {print $$5 "\t" $$7 "\t" $$1 "\n" $$13 "\t" $$15 "\t" $$9 }' $< \
-	| sort | uniq > $@
-
-%_filter.tsv: %BC_ensg_hg.tsv
-	awk -F"\t" '{print $$1}' $< > $@
-	# WGDmirna_filter has 28 miRNAs
 
 hsa.gff3:
 	wget -O $@ 'https://www.mirbase.org/ftp/CURRENT/genomes/hsa.gff3'
@@ -57,6 +38,40 @@ mirnaGene_primTrans.tsv: mirna.prim_transcripts.tsv ensembl.mirna_ensg_mirbase.c
 	# NR = 2.110
 
 mirnaGene_primTrans_matureMirna.tsv: mirna.mature.tsv mirnaGene_primTrans.tsv
-	translate -a -d -j -v -e XXXXX $< 4 <$(word 2, $^) | grep -vw XXXXX | awk -F"\t" '{print $$0}' > $@
+	translate -a -d -j -v -e XXXXX $< 4 <$(word 2, $^) | grep -vw XXXXX | awk -F"\t" '{print $$1"\t"$$2"\t"$$4"\t"$$3"\t"$$6"\t"$$5}' > $@
 	# NR = 3.164
 	# for a total of 1839 mirna Gene, some of the which have more than a transcript, and not every transcript have 2 mature miRNAs
+
+%.fa: %.gz
+	gzip -dk $<
+
+miRNA.dat.gz:
+	wget -O $@ 'https://www.mirbase.org/ftp/CURRENT/miRNA.dat.gz'
+
+miRNA.dat: miRNA.dat.gz
+	gzip -dk $<
+
+hairpin.fa.gz:
+	wget -O $@ 'https://www.mirbase.org/ftp/CURRENT/hairpin.fa.gz'
+
+hairpin.fa: hairpin.fa.gz
+	gzip -dk $<
+
+mature.fa.gz:
+	wget -O $@ 'https://www.mirbase.org/ftp/CURRENT/mature.fa.gz'
+
+mature.fa: mature.fa.gz
+	gzip -dk $<
+
+id_mirna_sequence.tsv: miRNA.dat
+	mir_emblparser.py < $< > $@
+
+mirnaHairpinName_sequence.tsv: hairpin.fa
+	mir_fastaparser.py < $< | awk -F"\t" '{print $$1"\t"$$3}' > $@
+
+mirnaMatureName_sequence.tsv: mature.fa
+	mir_fastaparser.py < $< | awk -F"\t" '{print $$1"\t"$$3}' > $@
+
+seq.mirnaGene_primTrans_matureMirna.tsv: mirnaGene_primTrans_matureMirna.tsv mirnaHairpinName_sequence.tsv mirnaMatureName_sequence.tsv
+	translate -a -d -v -e XXXXX $(word 2, $^) 4 <$< | translate -a -d -v -e XXXXX $(word 3, $^) 7 | grep -vw XXXXX > $@
+	# NR = 3.164

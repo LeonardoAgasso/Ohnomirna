@@ -19,6 +19,6 @@ EMBL = os.readlink('/proc/self/fd/0')
 
 for record in SeqIO.parse(EMBL, "embl"):
 	if record.name.startswith("hsa"):
-		print(record.id, record.name, record.seq)
+		print(record.id, record.name, record.seq, sep = '\t')
 
 sys.exit()
