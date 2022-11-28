@@ -72,10 +72,59 @@ mirnaGene_primTrans_matureMirna.tsv: mirna.mature.tsv mirnaGene_primTrans.tsv
 	translate -a -d -j -v -e XXXXX $< 4 <$(word 2, $^) | grep -vw XXXXX | awk -F"\t" '{print $$0}' > $@
 	# NR = 3.164
 	# for a total of 1839 mirna Gene, some of the which have more than a transcript, and not every transcript have 2 mature miRNAs
+#____________________________________________________________________________________________________________________________________________________
+
+
+
+
+
+# Verify if https://www.cuilab.cn/transmir is reliable
+# Some problems: many loops indicated in the type of the relation are not verified using TarBase v8
+
+mirnaGene_primTrans_only.tsv: mirna.prim_transcripts.tsv ensembl.mirna_ensg_mirbase.clean.tsv
+	translate -a -d -j -v -e XXXXX $< 3 <$(word 2, $^) | grep -vw XXXXX | awk -F"\t" '$$4==$$5 {print $$2"\t"$$3}' > $@
+	# NR = 2.110
+
+TF_mir_litBased.tsv.gz:
+	wget -O $@ 'https://www.cuilab.cn/files/images/transmir2/download/literature/hsa.tsv.gz'
+
+TF_mir_litBased_fullinfo.tsv: TF_mir_litBased.tsv.gz
+	gzip -d < $< > $@
+
+TF_mir_evidBased.tsv.gz:
+	wget -O $@ 'https://www.cuilab.cn/files/images/transmir2/download/alldata/hsa.tsv.gz'
+
+TF_mir_evidBased.tsv: TF_mir_evidBased.tsv.gz
+	gzip -d < $< > $@
+
+mirMature_TF_type.tsv: TF_mir_litBased_fullinfo.tsv
+	awk -F"\t" '{print $$2"\t"$$1"\t"$$5}' $< | sort | uniq > $@
+	# NR = 2.361
+
+primTrans_mirnaGene.tsv: mirnaGene_primTrans.tsv
+	awk -F"\t" '{print $$3"\t"$$2}' $< | sort | uniq > $@
+	# NR = 2.044
+	# Pay attention to the fact that there are some alternative primary transcripts (e.g ENSG00000288366 and ENSG00000284081)
+
+mirnaGene_TF.tsv: primTrans_mirnaGene.tsv mirMature_TF_type.tsv
+	translate -a -d -j -v -e . $< 1 < $(word 2, $^) > $@
+	# NR = 2.362
+
+WGDmirnaGene_TF.tsv: mirnaGene_TF.tsv WGDmirna_filter.tsv
+	filter_1col 2 $(word 2, $^) < $< > $@
+	# NR = 79
+
+WGDSSDmirnaGene_TF.tsv: mirnaGene_TF.tsv WGDSSDmirna_filter.tsv
+	filter_1col 2 $(word 2, $^) < $< > $@
+	# NR = 113
+#____________________________________________________________________________________________________________________________________________________
+
+
+
 
 
 WGDmirnaGene_primTrans_matureMirna.tsv: mirnaGene_primTrans_matureMirna.tsv WGDmirna_filter.tsv
-	filter_1col 2 $(word 2, $^) <mirnaGene_primTrans_matureMirna.tsv > $@
+	filter_1col 2 $(word 2, $^) < $< > $@
 	# NR = 54
 	# for a total of 28 WGDmirna genes
 
@@ -90,8 +139,7 @@ matureWGDmirna_WGDmirnaGene_hostGene.tsv: WGDmirnaBC_ensg_hg.tsv matureWGDmirna_
 	# NR = 54
 
 TarBase_v8.targetGene_matureWGDmirna_WGDmirnaGene_hostGene.tsv: matureWGDmirna_WGDmirnaGene_hostGene.tsv TarBase_v8.hsa.tsv
-	translate -a -d -j -v -e XXXXX $< 3 <$(word 2, $^) | grep -vw XXXXX > $@
-
+	translate -a -d -j -v -e XXXXX $< 3 < $(word 2, $^) | grep -vw XXXXX > $@
 
 WGDSSDmirnaGene_primTrans_matureMirna.tsv: mirnaGene_primTrans_matureMirna.tsv WGDSSDmirna_filter.tsv
 	filter_1col 2 $(word 2, $^) <mirnaGene_primTrans_matureMirna.tsv > $@
