@@ -140,6 +140,41 @@ matureWGDmirna_WGDmirnaGene_hostGene.tsv: WGDmirnaBC_ensg_hg.tsv matureWGDmirna_
 
 TarBase_v8.targetGene_matureWGDmirna_WGDmirnaGene_hostGene.tsv: matureWGDmirna_WGDmirnaGene_hostGene.tsv TarBase_v8.hsa.tsv
 	translate -a -d -j -v -e XXXXX $< 3 < $(word 2, $^) | grep -vw XXXXX > $@
+#____________________________________________________________________________________________________________________________________________________
+
+
+
+
+
+
+
+
+SSDmirnaGene_primTrans_matureMirna.tsv: mirnaGene_primTrans_matureMirna.tsv SSDmirna_filter.tsv
+	filter_1col 2 $(word 2, $^) <mirnaGene_primTrans_matureMirna.tsv > $@
+	# NR = 54
+	# for a total of 28 WGDmirna genes
+
+matureSSDmirna_SSDmirnaGene.tsv: SSDmirnaGene_primTrans_matureMirna.tsv
+	awk -F"\t" '{print $$5"\t"$$2}' $< | sort > $@
+	# kept the janitor gene because some mature miRNA are the same but come from different genes
+	# (e.g. MIR218-1 and MIR218-2 both mature in a hsa-miR-218-5p)
+	# NR = 54
+
+matureSSDmirna_SSDmirnaGene_hostGene.tsv: SSDmirnaBC_ensg_hg.tsv matureSSDmirna_SSDmirnaGene.tsv
+	translate -a -d -j -v -e XXXXX $< 2 <$(word 2, $^) | grep -vw XXXXX | awk -F"\t" '{print $$1"\t"$$2"\t"$$4}' > $@
+	# NR = 54
+
+TarBase_v8.targetGene_matureSSDmirna_SSDmirnaGene_hostGene.tsv: matureSSDmirna_SSDmirnaGene_hostGene.tsv TarBase_v8.hsa.tsv
+	translate -a -d -j -v -e XXXXX $< 3 <$(word 2, $^) | grep -vw XXXXX > $@
+#____________________________________________________________________________________________________________________________________________________
+
+
+
+
+
+
+
+
 
 WGDSSDmirnaGene_primTrans_matureMirna.tsv: mirnaGene_primTrans_matureMirna.tsv WGDSSDmirna_filter.tsv
 	filter_1col 2 $(word 2, $^) <mirnaGene_primTrans_matureMirna.tsv > $@
@@ -158,3 +193,4 @@ matureWGDSSDmirna_WGDSSDmirnaGene_hostGene.tsv: WGDSSDmirnaBC_ensg_hg.tsv mature
 
 TarBase_v8.targetGene_matureWGDSSDmirna_WGDSSDmirnaGene_hostGene.tsv: matureWGDSSDmirna_WGDSSDmirnaGene_hostGene.tsv TarBase_v8.hsa.tsv
 	translate -a -d -j -v -e XXXXX $< 3 <$(word 2, $^) | grep -vw XXXXX > $@
+#____________________________________________________________________________________________________________________________________________________
