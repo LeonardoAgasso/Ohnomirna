@@ -4,8 +4,10 @@ from Bio import SeqIO
 from Bio import Align
 from Bio.Align.substitution_matrices import Array
 
+#seed portion in a mature miRNA (to be better defined)
 seed_length = 6
 final_notseed_bps = 1
+
 #ORDERED nitrogenous bases to be substituted in seed
 nonseed_nb = "ACGU"
 seed_nb = "ZVRB"
@@ -53,20 +55,20 @@ def myRange(start,end,step):
 		i += step
 		yield end
 
-def SimilarityMatrix():
-	matr = Array(nonseed_nb+seed_nb, dims=2) #define the empty 8x8 substitution-matrix
+def ScoreMatrix():
+	matr = Array(nonseed_nb+seed_nb, dims=2) #define the empty 8x8 score-matrix
 	print(matr)
 
 	#parameters to set
 	outseed_match = 1
 	outseed_mismatch = -1
-	#outseed_gap = 0
+	#outseed_gap = 0     gap are not a parametere in score matrices
 
 	seed_match = 4
 	seed_mismatch = -4
-	#seed_gap = -2
+	#seed_gap = -2		gap are not a parametere in score matrices
 
-	# set the entrances of the subs matrix
+	# set the entrances of the score matrix
 	for i in range(len(all_nb)):
 		for j in range(len(all_nb)):
 			if(all_nb[i] in seed_nb and all_nb[j] in seed_nb): #only when confronting two nitrogenous bases both in the seed
@@ -82,15 +84,19 @@ def SimilarityMatrix():
 
 	return matr
 
+def test_seedModifier(testseq):
+	if(testseq==""):
+		seq = "ACGTACGTACGTACGTACGT" #sequenza di prova per testare la sostituzione delle basi nel seed
+		print("using predefined testseq:")
+	print(seq)
+	seq_mod = seed_modify(seq)
+	print(seq_mod)
+
+
+
 #_____________MAIN_____________
 names = []
 sequences = []
-
-seq = "ACGTACGTACGTACGTACGT"
-print(seq)
-
-seq_mod = seed_modify(seq)
-print(seq_mod)
 
 aligner = Align.PairwiseAligner()
 aligner.mode = "global" # can be changed to "local"
