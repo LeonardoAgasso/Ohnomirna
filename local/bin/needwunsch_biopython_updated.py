@@ -1,13 +1,15 @@
 #All-vs-all Needleman-Wunsch alignment (+score) given a list of sequence in fasta format
 
+#The Bio.Align module contains the PairwiseAligner class for global and local alignments
+#using the Needleman-Wunsch, Smith-Waterman, Gotoh (three-state), and Waterman-Smith-Beyer
+#global and local pairwise alignment algorithms, with numerous options to change the alignment parameters.
+
 from Bio import SeqIO
 from Bio import Align
 from Bio.Align.substitution_matrices import Array
 
-#seed portion in a mature miRNA (to be better defined)
 seed_length = 6
 final_notseed_bps = 1
-
 #ORDERED nitrogenous bases to be substituted in seed
 nonseed_nb = "ACGU"
 seed_nb = "ZVRB"
@@ -55,23 +57,23 @@ def myRange(start,end,step):
 		i += step
 		yield end
 
-def ScoreMatrix():
-	matr = Array(nonseed_nb+seed_nb, dims=2) #define the empty 8x8 score-matrix
+def Seed_Sensistive_SimMatr():
+	matr = Array(nonseed_nb+seed_nb, dims=2) #define the empty 8x8 substitution-matrix
 	print(matr)
 
 	#parameters to set
 	outseed_match = 1
 	outseed_mismatch = -1
-	#outseed_gap = 0     gap are not a parametere in score matrices
+	#outseed_gap = 0
 
 	seed_match = 4
 	seed_mismatch = -4
-	#seed_gap = -2		gap are not a parametere in score matrices
+	#seed_gap = -2
 
-	# set the entrances of the score matrix
+	# set the entrances of the subs matrix
 	for i in range(len(all_nb)):
 		for j in range(len(all_nb)):
-			if(all_nb[i] in seed_nb and all_nb[j] in seed_nb): #only when confronting two nitrogenous bases both in the seed
+			if(all_nb[i] in seed_nb and all_nb[j] in seed_nb): #only when confronting two nbs both in the seed
 				if(all_nb[i]==all_nb[j]):
 					counts[i][j]=seed_match
 				else:
@@ -84,23 +86,20 @@ def ScoreMatrix():
 
 	return matr
 
-def test_seedModifier(testseq):
-	if(testseq==""):
-		seq = "ACGTACGTACGTACGTACGT" #sequenza di prova per testare la sostituzione delle basi nel seed
-		print("using predefined testseq:")
-	print(seq)
-	seq_mod = seed_modify(seq)
-	print(seq_mod)
-
-
-
 #_____________MAIN_____________
 names = []
 sequences = []
 
-aligner = Align.PairwiseAligner()
-aligner.mode = "global" # can be changed to "local"
+seq = "ACGTACGTACGTACGTACGT"
+print(seq)
 
+seq_mod = seed_modify(seq)
+print(seq_mod)
+
+aligner = Align.PairwiseAligner()
+aligner.mode = "global" # can be changed to "local", default is global
+
+aligner.substitution_matrix = Seed_Sensistive_SimMatr()   #p.97 Biopython tutorial
 
 # Store ordered info about mirna ids
 with open("mockmirs_prova.fa") as handle:
