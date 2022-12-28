@@ -757,7 +757,7 @@ ohnologs_mak_pp.flagged.geneNames.inverted.tsv: ohnologs_makino_parampriya_merge
 	awk -F"\t" '{print $$3"\t"$$2"\t"$$1"\t"$$6"\t"$$5"\t"$$4"\t"$$7}' $< > $@
 	#Bring the ENSG as last column (for each gene) to append the hosted miRNA
 	#
-	#NR =
+	#NR = 10,271
 	#
 	#Structure:
 	#	1: Biotype_1
@@ -833,14 +833,14 @@ human_single_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInvert
 
 human_single_paralogs.miRNA_appended.tsv: human_single_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv dictionary.miRNAdated.tsv
 	translate -a -d -v -e XXXXXX $(word 2, $^) 3 < $< | grep -vw XXXXXX > $@
-	#miRNAs appended to single paralogs/ohnologs, only genes hosting a miRNA are kept.
+	#miRNAs appended to single paralog/ohnolog, only genes hosting a miRNA are kept.
 	#If a gene hosts more than a miRNA than it is counted once (add -j option to count twice)
 	#
 	#NR = 1,316
-	#	NR (grep WGD) = 767
-	#	NR (grep SSD) = 549
-	#	NR (grep WGD, mirgene_conf) = 109
+	#	NR (grep SSD) = 767
+	#	NR (grep WGD) = 549
 	#	NR (grep SSD, mirgene_conf) = 155
+	#	NR (grep WGD, mirgene_conf) = 109
 	#
 	#Structure:
 	#	1: Gene Name
@@ -873,3 +873,34 @@ human_single_paralogs.in_couple.miRNA_appended.tsv: extended.paralogs_miRNAdated
 	#	7: Hosted miRNA ENSG
 	#	8: Hosted miRNA date
 	#	9: WGD/SSD flag
+
+ohnologs_mak_pp.single.flagged.geneNames.inverted.tsv: ohnologs_mak_pp.flagged.geneNames.inverted.tsv
+	awk -F"\t" '{print $$1"\t"$$2"\t"$$3"\t"$$7"\n"$$4"\t"$$5"\t"$$6"\t"$$7}' $< | sort | uniq > $@
+	#Single ohnologs separated from the file containing the couples, without the Ensembl filter
+	#
+	#NR = 8,798
+	#
+	#Structure:
+	#	1: Biotype_1
+	#	2: Name_1
+	#	3: ENSG_1
+	# 4: Ensembl paralog confirmation flag
+
+ohnologs_mak_pp.single.flagged.geneNames.inverted.miRNA_appended.tsv: ohnologs_mak_pp.single.flagged.geneNames.inverted.tsv dictionary.miRNAdated.tsv
+	translate -a -d -v -e XXXXXX $(word 2, $^) 3 < $< | grep -vw XXXXXX > $@
+	#miRNAs appended to single ohnolog, only genes hosting a miRNA are kept.
+	#If a gene hosts more than a miRNA than it is counted once (add -j option to count twice)
+	#
+	#NR = 605
+	#	NR (grep mirgene_conf) = 125
+	#
+	#Structure:
+	#	1: Gene Name
+	#	2: Gene Biotype
+	#	3: Gene ENSG
+	#	4: miRNA biotype (redundant, always "miRNA")
+	#	5: miRNA name
+	#	6: mirGeneDB flag
+	#	7: miRNA ENSG
+	#	8: miRNA date
+	#	9: Ensembl paralog confirmation flag
