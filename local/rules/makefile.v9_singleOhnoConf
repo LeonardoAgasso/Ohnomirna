@@ -1,5 +1,7 @@
 .DELETE_ON_ERROR:
 
+
+#Section to parse the literature databases dedicated to ohnologs and integrate them with Ensembl datas
 makino_2010_ohnologs.xls:
 	wget -O $@ 'https://www.pnas.org/action/downloadSupplement?doi=10.1073%2Fpnas.0914697107&file=st01.xls'
 
@@ -80,10 +82,21 @@ human_paralogs_biomart.tsv:
 	#NR = 3,608,584		(new Ensembl version, release 108 october 2022)
 	#
 	#Structure:
-	#		$1		$2						$3						$4				$5							$6							$7									$8
-	#		ENSG	ENSG.version	Paralog_ENSG	Par_name	Par_chrom_start	Par_chromosome	Par_ensembl_peptide	Par_chrom_end
-	#		$9														$10							$11									$12					$13							$14
-	#		Par_canonical_transc_protein	Paralog_subtype	Par_orthology_type	Par_perc_id	Par_perc_id_r1	External_gene_name
+	#Structure:
+	#	1: ENSG
+	#	2: ENSG.EnsemblVersion
+	#	3: Paralog_ENSG
+	#	4: Paralog_name
+	#	5: Paralog_chromosome_start
+	#	6: Paralog_chromosome
+	#	7: Paralog_ensembl_peptide
+	#	8: Paralog_chromosome_end
+	#	9: Paralog_canonical_transcript_protein
+	#	10: Paralog_subtype
+	#	11: Paralog_orthology_type
+	#	12: Paralog_perc_ID
+	#	13: Paralog_perc_ID_r1
+	#	14: External_gene_name
 	#(infos about the gene in $1 are not present here)
 
 human_paralogs_biomart.halved.filtered.tsv: human_paralogs_biomart.tsv
@@ -96,10 +109,19 @@ human_paralogs_biomart.halved.filtered.tsv: human_paralogs_biomart.tsv
 	#NR = 1,780,069 (old release was 1,780,166)
 	#
 	#Structure:
-	#		1			2							3					4								5								6										7
-	#		ENSG	Paralog_ENSG	Par_name	Par_chrom_start	Par_chromosome	Par_ensembl_peptide	Par_chrom_end
-	#		8															9								10									11					12							13
-	#		Par_canonical_transc_protein	Paralog_subtype	Par_orthology_type	Par_perc_id	Par_perc_id_r1	External_gene_name
+	#	1: ENSG
+	#	2: Paralog_ENSG
+	#	3: Paralog_name
+	#	4: Paralog_chromosome_start
+	#	5: Paralog_chromosome
+	#	6: Paralog_ensembl_peptide
+	#	7: Paralog_chromosome_end
+	#	8: Paralog_canonical_transcript_protein
+	#	9: Paralog_subtype
+	#	10: Paralog_orthology_type
+	#	11: Paralog_perc_ID
+	#	12: Paralog_perc_ID_r1
+	#	13: External_gene_namee
 
 human_paralgos_ENSGonly.tsv: human_paralogs_biomart.halved.filtered.tsv
 	awk -F"\t" '{print $$1"\t"$$2}' $< > $@
@@ -128,10 +150,33 @@ human_paralogs_biomart.halved.filtered.joint_id.tsv: human_paralogs_biomart.halv
 	#NR = 1,780,069
 	#
 	#Structure:
-	#	1			2							3					4								5								6										7
-	#	ENSG	Paralog_ENSG	Par_name	Par_chrom_start	Par_chromosome	Par_ensembl_peptide	Par_chrom_end
-	#	8															9								10									11					12							13									14
-	#	Par_canonical_transc_protein	Paralog_subtype	Par_orthology_type	Par_perc_id	Par_perc_id_r1	External_gene_name	ENSG:Paralog_ENSG
+	#	1: ENSG
+	#	2: Paralog_ENSG
+	#	3: Paralog_name
+	#	4: Paralog_chromosome_start
+	#	5: Paralog_chromosome
+	#	6: Paralog_ensembl_peptide
+	#	7: Paralog_chr#Structure:
+	#	1: ENSG
+	#	2: Paralog_ENSG
+	#	3: Paralog_name
+	#	4: Paralog_chromosome_start
+	#	5: Paralog_chromosome
+	#	6: Paralog_ensembl_peptide
+	#	7: Paralog_chromosome_end
+	#	8: Paralog_canonical_transcript_protein
+	#	9: Paralog_subtype
+	#	10: Paralog_orthology_type
+	#	11: Paralog_perc_ID
+	#	12: Paralog_perc_ID_r1
+	#	13: External_gene_nameomosome_end
+	#	8: Paralog_canonical_transcript_protein
+	#	9: Paralog_subtype
+	#	10: Paralog_orthology_type
+	#	11: Paralog_perc_ID
+	#	12: Paralog_perc_ID_r1
+	#	13: External_gene_name
+	#	14:	ENSG:Paralog_ENSG
 
 ohnologs_makino_parampriya_merged.flagged.tsv: human_paralogs_biomart.halved.filtered.jointid_flag.tsv ohnologs_makino_parampriya_merged.2beflagged.tsv
 	translate -d -z -v -e EnsemblNotConf $< 3 < $(word 2, $^) > $@
@@ -204,12 +249,15 @@ human_paralogs_biomart.halved.filtered.flagged.tsv: dic.ohnologs_makino_parampri
 	#	12: Par_perc_id_r1
 	#	13: External_gene_name
 
+
+#Section on Gencode database parsing: miRNAs and genes are parsed and genes hosting a miRNA are kept
 %.bed: %.gtf
 	cat $< | gff2tab gene_type gene_id gene_name | awk '{print $$1 "\t" $$4 "\t" $$5 "\t" substr($$10, 1, 15) "\t" $$6 "\t" $$7 "\t" $$9 "\t" $$11}' > $@
 	#converter from gtf to tab using gff2tab tool
 
 gencode.gtf.gz:
 	wget -O $@ 'https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_41/gencode.v41.annotation.gtf.gz'
+	#Compressed Gencode database
 
 gencode.gtf: gencode.gtf.gz
 	gzip $< -d ; make -t $@
@@ -292,11 +340,6 @@ gencode.geneOnly.miRNA_intWithGenes.mirgeneFlagged.bed: gencode.geneOnly.miRNA.m
 	#	8: Name
 	#	9: MirgeneDB flag (when "conf" miRNA is bona fide)
 
-singleOhnologs_hosting_mirna.tsv: protodictionary.tsv singleOhnologs_list.tsv
-	translate -a -d -v -e XXXXXX $(word 2, $^) 13 < $< | grep -vw XXXXXX | awk -F"\t" '{print $$13"\t"$$14"\t"$$15"\t"$$16"\t"$$8"\t"$$6}' > $@
-	#Single ohnolog genes which host a microRNA (prof. Matteo Osella suggestion)
-	#NR =
-
 protodictionary.tsv: gencode.geneOnly.miRNA_intWithGenes.mirgeneFlagged.bed gencode.geneOnly.bed
 	bedtools intersect -wb -a $< -b $(word 2, $^) | awk -F"\t" '$$16!="miRNA"' > $@
 	#Intermediate step in creating a dictionary using "gencode.geneOnly.miRNA_intWithGenes.mirgeneFlagged.bed"
@@ -367,6 +410,8 @@ ohnologs_makino_parampriya_merged.flagged.geneNames.inverted.tsv: ohnologs_makin
 	#	6: ENSG_2
 	# 7: Ensembl paralog confirmation flag
 
+
+#Section on miRNA parsing and flagging according to MirGeneDB to create a dictionary (a separated version does the same thing better)
 hsa.gff3:
 	wget -O $@ 'https://www.mirbase.org/ftp/CURRENT/genomes/hsa.gff3'
 	#Download human miRNA from mirbase, with comments and headers
@@ -421,7 +466,6 @@ pt.bed.id_alias_hgnc_name.tsv: hsa.clean.gff3
 	#	12: Gene name (e.g. MIR10A)
 	#	13: primary transcript name (e.g. hsa-mir-10a)
 
-
 mm.bed.id_alias_hgnc_name_ptder.tsv: hsa.clean.gff3
 	cat $< | perl -lne 'if(m/(.*)ID=(MIMAT\d+).*Alias=(MIMAT\d+).*Name=hsa-miR-(.*);Derives_from=(.*)$$/){$$s=uc("MIR$$4"); print "$$1\t$$2\t$$3\t$$s\thsa-miR-$$4\t$$5"} if(m/(.*)ID=(MIMAT\d+).*Alias=(MIMAT\d+).*Name=hsa-let-(.*);Derives_from=(.*)$$/){$$s=uc("MIRLET$$4"); print "$$1\t$$2\t$$3\t$$s\thsa-let-$$4\t$$5"}' > $@
 	#mature miRNAS from mirBase ("ptder"=primary transcript from which the mature miRNA derives), converted in a quasi-bed format using Perl
@@ -450,11 +494,26 @@ bed.id_alias_hgnc_name_ptder.tsv: pt.bed.id_alias_hgnc_name.tsv mm.bed.id_alias_
 	#
 	#NR = 4,801
 	#
-	#Structure: depending on the miRNA type same as mm.bed.id_alias_hgnc_name_ptder.tsv or pt.bed.id_alias_hgnc_name.tsv
+	#Structure:
+	#	1: Chromosome
+	#	2: Source (here always ".")
+	#	3: Biotype (miRNA or miRNA_primary_transcript)
+	#	4: Chromosome_start
+	#	5: Chromosome_end
+	#	6: Score
+	#	7: Strand
+	#	8: Frame
+	#	9: EMPTY
+	#	10: ID (e.g. MI0000266)
+	#	11: Alias (e.g. MI0000266; always same as the ID)
+	#	12: Gene name (e.g. MIR10A-5P)
+	#	13: Mature miRNA name (e.g. hsa-mir-10a)
+	#	(only for mature miRNAs)14:	Alias of the miRNA gene from which the mature miRNA is derived (e.g. MI0000266)
 
 mirgenedb2.1_hsa.bed:
 	wget -O $@ 'https://mirgenedb.org/static/data/hsa/hsa-all.bed'
 	#MirGeneDB v2.0 (based on hg38). List of bona fide miRNA (bed format)
+	#Not used in this project
 	#
 	#NR = 5,672
 
@@ -474,7 +533,6 @@ mirgenedb2.1_hsa.gff:
 	#	7: Strand
 	#	8: Frame
 	#	9: Attributes (ID; Alias)
-
 
 mirgenedb2.1_hsa.id_alias.gff: mirgenedb2.1_hsa.gff
 	cat $< | perl -lne 'if(m/(.*)ID=(.*);Alias=(.*)$$/) {print "$$1\t$$2\t$$3"} elsif(m/(.*)ID=(.*)$$/) {print "$$1\t$$2"}' > $@
@@ -553,7 +611,6 @@ gencode.geneOnly.miRNA.mirgeneFlagged.bed: dic.mirgenedb.id_hgnc.3p5premoved.tsv
 	#	8: Name
 	#	9: migene_flag
 
-
 miRNA.2bedated.tsv: gencode.geneOnly.miRNA_intWithGenes.mirgeneFlagged.bed
 	awk -F"\t" '{print $$4}' $< | sort | uniq > $@
 	#Extracting ENSGs from miRNA to which we wanto to assign a date
@@ -562,7 +619,6 @@ miRNA.2bedated.tsv: gencode.geneOnly.miRNA_intWithGenes.mirgeneFlagged.bed
 	#
 	#Structure:
 	#	1: ENSG
-
 
 dic_miRNA.dated.tsv: miRNA.2bedated.tsv
 	python3 ensgdate.py < $< > $@
@@ -588,7 +644,6 @@ dictionary.mirgene_conf.miRNAdated.tsv: dictionary.mirgene_conf.tsv dic_miRNA.da
 	#	4: mirgene_flag
 	#	5: miRNA ENSG
 
-
 dictionary.miRNAdated.tsv: dictionary.tsv dic_miRNA.dated.tsv
 	translate -a -d -v -e XXXXX $(word 2, $^) 5 < $< > $@
 	#Dictionary where every HG is linked by its ENSG to the miRNA it hosts, date is added in the last column
@@ -603,6 +658,8 @@ dictionary.miRNAdated.tsv: dictionary.tsv dic_miRNA.dated.tsv
 	#	5: miRNA ENSG
 	#	6: Date (as the most ancient taxa for which Ensemble knows an orthology relation, "not_present" if Ensembl doesn't have the information)
 
+
+#Section to verify which paralog genes host a miRNA
 human_paralogs_biomart.halved.filtered.flagged.geneNames.tsv: dic.ENSG_geneName_geneType.tsv human_paralogs_biomart.halved.filtered.flagged.tsv
 	translate -a -d -z -v -e ERROR $< 1 2 < $(word 2, $^) | grep -v ERROR > $@
 	#Transitory file to collect all the informations about paralog couples (flagged as WGD/SSD)
@@ -642,20 +699,20 @@ human_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv:
 	#	NR (grep SSD = grep -v WGD) = 1,763,900
 	#
 	#Strucure:
-	#	1: HG_1 Name
-	#	2: HG_1 Biotype
-	#	3: HG_1 ENSG
-	#	4: HG_2 Name
-	#	5: HG_2 Biotype
-	#	6: HG_2 ENSG
+	#	1: Gene_1 Name
+	#	2: Gene_1 Biotype
+	#	3: Gene_1 ENSG
+	#	4: Gene_2 Name
+	#	5: Gene_2 Biotype
+	#	6: Gene_2 ENSG
 	#	7: WGD/SSD flag
 	#	8: Couple_last_common_ancestor
 
 partial.paralogs_miRNAdated.mirgeneFlagged_couples.tsv: human_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv dictionary.miRNAdated.tsv
 	translate -a -d -j -v -e XXXXXX $(word 2, $^) 3 < $< | grep -vw XXXXXX > $@
-	#Here the miRNA is appended only to the first Ohnolog of the couple
+	#Here the miRNA is appended only to the first paralog of the couple, if the gene does not host a miRNA it's removed
 	#
-	#NR =
+	#NR = 6,696
 	#
 	#Strucure:
 	#	1: HG_1 Name
@@ -672,12 +729,14 @@ partial.paralogs_miRNAdated.mirgeneFlagged_couples.tsv: human_paralogs_biomart.h
 
 extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv: partial.paralogs_miRNAdated.mirgeneFlagged_couples.tsv dictionary.miRNAdated.tsv
 	translate -a -d -j -v -e XXXXXX $(word 2, $^) 11 < $< | grep -vw XXXXXX > $@
-	#Here the miRNA is appended to the second Ohnolog of the couple
+	#Here the miRNA is appended to the second Ohnolog of the couple, if the gene does not host a miRNA it's removed
 	#
 	#
 	#NR = 587
 	#	NR (grep WGD) = 106
 	#	NR (grep SSD) = 481
+	#	NR (grep WGD, mirgene_conf) =
+	#	NR (grep SSD, mirgene_conf) =
 	#
 	#Strucure:
 	#	1: HG_1 Name
@@ -700,35 +759,60 @@ extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv: partial.paralogs_miRNAd
 	#	18: Couple_last_common_ancestor
 
 
+#Section to check single genes which belongs to a ohnolog/paralog couple and host a miRNA
+human_single_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv: human_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv
+	awk -F"\t" '{print $$1"\t"$$2"\t"$$3"\t"$$7"\n"$$4"\t"$$5"\t"$$6"\t"$$7}' $< | sort | uniq > $@
+	#Single paralogs/ohnologs separated from the file containing the couples
+	#
+	#NR = 26,549
+	#	NR (grep WGD) = 7,334
+	#	NR (grep SSD) = 19,215
+	#
+	#Strucure:
+	#	1: Gene_1 Name
+	#	2: Gene_1 Biotype
+	#	3: Gene_1 ENSG
+	#	4: WGD/SSD flag
 
-#____________________________________________________________TARBASE V8____________________________________________________________
+human_single_paralogs.miRNA_appended.tsv: human_single_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv dictionary.miRNAdated.tsv
+	translate -a -d -v -e XXXXXX $(word 2, $^) 3 < $< | grep -vw XXXXXX > $@
+	#miRNAs appended to single paralogs/ohnologs, only genes hosting a miRNA are kept.
+	#If a gene hosts more than a miRNA than it is counted once (add -j option to count twice)
+	#
+	#NR = 1,316
+	#	NR (grep WGD) = 767
+	#	NR (grep SSD) = 549
+	#	NR (grep WGD, mirgene_conf) = 109
+	#	NR (grep SSD, mirgene_conf) = 155
+	#
+	#Structure:
+	#	1: Gene Name
+	#	2: Gene Biotype
+	#	3: Gene ENSG
+	#	4: miRNA biotype (always miRNA)
+	#	5: miRNA name
+	#	6: mirGeneDB flag
+	#	7: miRNA ENSG
+	#	8: miRNA date
+	#	9: WGD/SSD flag
 
-TarBase_v8_download.txt:
-	#Request and download the database from: https://dianalab.e-ce.uth.gr/html/diana/web/index.php?r=tarbasev8/index and extract it
-	#NR = 927,120
-
-TarBase_v8.hsa.tsv: TarBase_v8_download.txt
-	awk -F"\t" '$$4=="Homo sapiens" || $$4=="species"' $< > $@
-	#NR = 420,710		(1 row is the header)	(check the number because it reduced
-
-TarBase_v8.hsa.name.tsv: TarBase_v8.hsa.tsv
-	cat $< | perl -lane 'BEGIN{$$,="\t"} $$original_name=$$F[2]; $$F[2]=uc($$F[2]); $$F[2]=~s/^HSA-//; $$F[2]=~s/-([35]P)$$/\t$$1/;  $$F[2]=~s/MIR-/MIR/; $$F[2]=~s/LET-/MIRLET/; print @F,$$original_name;'\
-	| sort -n -r  > $@
-
-TarBase_v8.hsa.miRNA_interactNumber.tsv: TarBase_v8.hsa.tsv
-	awk -F"\t" 'NR>1 {print $$3}' $< | sort | uniq -c > $@
-	#NR = 1,074
-
-TarBase_v8.hsa.gene_miRNA_interactNumber_name.tsv: TarBase_v8.hsa.miRNA_interactNumber.tsv
-	cat $< | perl -lne 'if(m/(.*)hsa-miR-(.*)-3p$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2-3p\t$$a"} \
-	elsif(m/(.*)hsa-miR-(.*)-5p$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2-5p\t$$a"} \
-	elsif(m/(.*)hsa-miR-(.*)$$/) {$$a=uc("MIR$$2"); print "$$1\thsa-miR-$$2\t$$a"} \
-	elsif(m/(.*)hsa-let-(.*)-3p$$/) {$$a=uc("MIRLET$$2"); print "$$1\thsa-let-$$2-3p\t$$a"} \
-	elsif(m/(.*)hsa-let-(.*)-5p$$/) {$$a=uc("MIRLET$$2"); print "$$1\thsa-let-$$2-5p\t$$a"} \
-	elsif(m/(.*)hsa-let-(.*)$$/) {$$a=uc("MIRLET$$2$$3"); print "$$1\thsa-let-$$2-$$3\t$$a"}' \
-	| sort -n -r  > $@
-	#NR  1,074
-
-TarBase_v8.hsa.gene_miRNA.tsv: TarBase_v8.hsa.tsv
-	awk -F"\t" 'NR>1 {print $$2 "\t" $$3}' $< | sort | perl -lne 'if(m/(.[^(]*)' > $@
-	#NR = 420,710
+human_single_paralogs.in_couple.miRNA_appended.tsv: extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv
+	awk -F"\t" '{print $$1"\t"$$2"\t"$$3"\t"$$4"\t"$$5"\t"$$6"\t"$$7"\t"$$8"\t"$$17"\n"$$9"\t"$$10"\t"$$11"\t"$$12"\t"$$13"\t"$$14"\t"$$15"\t"$$16"\t"$$17}' $< | sort | uniq > $@
+	#List of single paralogs/ohnologs hosting a miRNA
+	#
+	#NR = 505
+	#	NR (grep WGD) = 131
+	#	NR (grep SSD) = 374
+	#	NR (grep WGD, mirgene_conf) = 47
+	#	NR (grep SSD, mirgene_conf) = 80
+	#
+	#Strucure:
+	#	1: HG Name
+	#	2: HG Biotype
+	#	3: HG ENSG
+	#	4: Hosted miRNA biotype (redundant, always "miRNA")
+	#	5: Hosted miRNA name
+	#	6: Hosted miRNA mirgene flag
+	#	7: Hosted miRNA ENSG
+	#	8: Hosted miRNA date
+	#	9: WGD/SSD flag
