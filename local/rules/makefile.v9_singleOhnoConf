@@ -1,6 +1,7 @@
 .DELETE_ON_ERROR:
 
 
+
 #Section to parse the literature databases dedicated to ohnologs and integrate them with Ensembl datas
 makino_2010_ohnologs.xls:
 	wget -O $@ 'https://www.pnas.org/action/downloadSupplement?doi=10.1073%2Fpnas.0914697107&file=st01.xls'
@@ -182,7 +183,7 @@ ohnologs_makino_parampriya_merged.flagged.tsv: human_paralogs_biomart.halved.fil
 	translate -d -z -v -e EnsemblNotConf $< 3 < $(word 2, $^) > $@
 	#Ohnologs flagged according to i they're confirmed paralogs by Ensembl
 	#
-	#NR = 10,271 (same as previous release)
+	#NR = 10,271
 	#
 	#Structure:
 	#	1: ENSG_1
@@ -199,10 +200,10 @@ ohnologs_makino_parampriya_merged.flagged.geneNames.tsv: dic.ENSG_geneName_geneT
 	#	1: ENSG_1
 	#	2: Name_1
 	#	3: Biotype_1 (protein_coding)
-	#	1: ENSG_2
-	#	2: Name_2
-	#	3: Biotype_2 (protein_coding)
-	# 4: Ensembl paralog confirmation flag
+	#	4: ENSG_2
+	#	5: Name_2
+	#	6: Biotype_2 (protein_coding)
+	# 7: Ensembl paralog confirmation flag
 
 dic.ohnologs_makino_parampriya_merged.joint_id.tsv: ohnologs_makino_parampriya_merged.tsv
 	awk -F"\t" '$$1<$$2 {print $$1":"$$2 "\t" "WGD"} $$1>=$$2{print $$2":"$$1 "\t" "WGD"}' $< | sort | uniq > $@
@@ -213,18 +214,6 @@ dic.ohnologs_makino_parampriya_merged.joint_id.tsv: ohnologs_makino_parampriya_m
 	#Structure:
 	#	1: ENSG1:ENSG2
 	#	2: "WGD"
-
-singleOhnologs_list.tsv: ohnologs_makino_parampriya_merged.flagged.geneNames.tsv
-	awk -F"\t" '{print $$1"\t"$$2"\t"$$3"\t"$$7"\n"$$4"\t"$$5"\t"$$6"\t"$$7}' $< | sort | uniq > $@
-	#List of single genes which belong to a ohnolog couple
-	#
-	#NR =  8,798
-	#
-	#Structure:
-	#	1: ENSG
-	#	2: name
-	#	3: Biotype
-	# 4: Ensembl paralog confirmation flag
 
 human_paralogs_biomart.halved.filtered.flagged.tsv: dic.ohnologs_makino_parampriya_merged.joint_id.tsv human_paralogs_biomart.halved.filtered.joint_id.tsv
 	translate -a -d -z -v -e SSD $< 14 < $(word 2, $^) | cut -f 1-13,15 > $@
@@ -248,6 +237,7 @@ human_paralogs_biomart.halved.filtered.flagged.tsv: dic.ohnologs_makino_parampri
 	#	11: Par_perc_id
 	#	12: Par_perc_id_r1
 	#	13: External_gene_name
+
 
 
 #Section on Gencode database parsing: miRNAs and genes are parsed and genes hosting a miRNA are kept
@@ -409,6 +399,7 @@ ohnologs_makino_parampriya_merged.flagged.geneNames.inverted.tsv: ohnologs_makin
 	#	5: Name_2
 	#	6: ENSG_2
 	# 7: Ensembl paralog confirmation flag
+
 
 
 #Section on miRNA parsing and flagging according to MirGeneDB to create a dictionary (a separated version does the same thing better)
@@ -659,6 +650,7 @@ dictionary.miRNAdated.tsv: dictionary.tsv dic_miRNA.dated.tsv
 	#	6: Date (as the most ancient taxa for which Ensemble knows an orthology relation, "not_present" if Ensembl doesn't have the information)
 
 
+
 #Section to verify which paralog genes host a miRNA
 human_paralogs_biomart.halved.filtered.flagged.geneNames.tsv: dic.ENSG_geneName_geneType.tsv human_paralogs_biomart.halved.filtered.flagged.tsv
 	translate -a -d -z -v -e ERROR $< 1 2 < $(word 2, $^) | grep -v ERROR > $@
@@ -710,7 +702,7 @@ human_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv:
 
 partial.paralogs_miRNAdated.mirgeneFlagged_couples.tsv: human_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv dictionary.miRNAdated.tsv
 	translate -a -d -j -v -e XXXXXX $(word 2, $^) 3 < $< | grep -vw XXXXXX > $@
-	#Here the miRNA is appended only to the first paralog of the couple, if the gene does not host a miRNA it's removed
+	#The miRNA is appended only to the first paralog of the couple, if the gene does not host a miRNA it's removed
 	#
 	#NR = 6,696
 	#
@@ -729,7 +721,7 @@ partial.paralogs_miRNAdated.mirgeneFlagged_couples.tsv: human_paralogs_biomart.h
 
 extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv: partial.paralogs_miRNAdated.mirgeneFlagged_couples.tsv dictionary.miRNAdated.tsv
 	translate -a -d -j -v -e XXXXXX $(word 2, $^) 11 < $< | grep -vw XXXXXX > $@
-	#Here the miRNA is appended to the second Ohnolog of the couple, if the gene does not host a miRNA it's removed
+	#The miRNA is appended to the second paralog of the couple, if the gene does not host a miRNA it's removed
 	#
 	#
 	#NR = 587
@@ -757,6 +749,71 @@ extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv: partial.paralogs_miRNAd
 	#	16: Hosted_2 miRNA date
 	#	17: WGD/SSD flag
 	#	18: Couple_last_common_ancestor
+
+
+
+#Section to verify ohnolog genes that host a miRNA without previously filter them with ensembl
+ohnologs_mak_pp.flagged.geneNames.inverted.tsv: ohnologs_makino_parampriya_merged.flagged.geneNames.tsv
+	awk -F"\t" '{print $$3"\t"$$2"\t"$$1"\t"$$6"\t"$$5"\t"$$4"\t"$$7}' $< > $@
+	#Bring the ENSG as last column (for each gene) to append the hosted miRNA
+	#
+	#NR =
+	#
+	#Structure:
+	#	1: Biotype_1
+	#	2: Name_1
+	#	3: ENSG_1
+	#	4: Biotype_2
+	#	5: Name_2
+	#	6: ENSG_2 (protein_coding)
+	# 7: Ensembl paralog confirmation flag
+
+partial.ohnologs_mak_pp.flagged.geneNames.inverted.tsv: ohnologs_mak_pp.flagged.geneNames.inverted.tsv dictionary.miRNAdated.tsv
+	translate -a -d -j -v -e XXXXXX $(word 2, $^) 3 < $< | grep -vw XXXXXX > $@
+	#The miRNA is appended only to the first paralog of the couple, if the gene does not host a miRNA it's removed
+	#
+	#NR = 757
+	#
+	#Strucure:
+	#	1: HG_1 Name
+	#	2: HG_1 Biotype
+	#	3: HG_1 ENSG
+	#	4: Hosted_1 miRNA biotype (redundant, always "miRNA")
+	#	5: Hosted_1 miRNA name
+	#	6: Hosted_1 miRNA mirgene flag
+	#	7: Hosted_1 miRNA ENSG
+	#	8: Hosted_1 miRNA date
+	#	9: HG_2 Name
+	#	10: HG_2 Biotype
+	#	11: HG_2 ENSG
+	#	12: Ensembl confirmation flag (EnsemblConf/EnsemblNotConf)
+
+extended.ohnologs_mak_pp.flagged.geneNames.inverted.tsv: partial.ohnologs_mak_pp.flagged.geneNames.inverted.tsv dictionary.miRNAdated.tsv
+	translate -a -d -j -v -e XXXXXX $(word 2, $^) 11 < $< | grep -vw XXXXXX > $@
+	#The miRNA is appended to the second paralog of the couple, if the gene does not host a miRNA it's removed
+	#6 more couples are present (ohnologs not recognized as such by Ensembl)
+	#
+	#NR = 112
+	#
+	#Strucure:
+	#	1: HG_1 Name
+	#	2: HG_1 Biotype
+	#	3: HG_1 ENSG
+	#	4: Hosted_1 miRNA biotype (redundant, always "miRNA")
+	#	5: Hosted_1 miRNA name
+	#	6: Hosted_1 miRNA mirgene flag
+	#	7: Hosted_1 miRNA ENSG
+	#	8: Hosted_1 miRNA date
+	#	9: HG_2 Name
+	#	10: HG_2 Biotype
+	#	11: HG_2 ENSG
+	#	12: Hosted_2 miRNA biotype (redundant, always "miRNA")
+	#	13: Hosted_2 miRNA name
+	#	14: Hosted_2 miRNA mirgene flag
+	#	15: Hosted_2 miRNA ENSG
+	#	16: Hosted_2 miRNA date
+	#	17: Ensembl confirmation flag
+
 
 
 #Section to check single genes which belongs to a ohnolog/paralog couple and host a miRNA
@@ -789,7 +846,7 @@ human_single_paralogs.miRNA_appended.tsv: human_single_paralogs_biomart.halved.f
 	#	1: Gene Name
 	#	2: Gene Biotype
 	#	3: Gene ENSG
-	#	4: miRNA biotype (always miRNA)
+	#	4: miRNA biotype (redundant, always "miRNA")
 	#	5: miRNA name
 	#	6: mirGeneDB flag
 	#	7: miRNA ENSG
