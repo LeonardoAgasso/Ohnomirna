@@ -1,4 +1,9 @@
+#!/usr/bin/env python3
+
 #All-vs-all Needleman-Wunsch alignment (+score) given a list of sequence in fasta format
+
+#idea coming from:
+#https://bmcgenomics.biomedcentral.com/articles/10.1186/1471-2164-13-218
 
 #The Bio.Align module contains the PairwiseAligner class for global and local alignments
 #using the Needleman-Wunsch, Smith-Waterman, Gotoh (three-state), and Waterman-Smith-Beyer
@@ -58,8 +63,8 @@ def myRange(start,end,step):
 		yield end
 
 def Seed_Sensistive_SimMatr():
-	matr = Array(nonseed_nb+seed_nb, dims=2) #define the empty 8x8 substitution-matrix
-	print(matr)
+	counts = Array(nonseed_nb+seed_nb, dims=2) #define the empty 8x8 substitution-matrix
+	#print(counts)
 
 	#parameters to set
 	outseed_match = 1
@@ -83,8 +88,8 @@ def Seed_Sensistive_SimMatr():
 					counts[i][j]=outseed_match
 				else:
 					counts[i][j]=outseed_mismatch
-
-	return matr
+	print(counts)
+	return counts
 
 #_____________MAIN_____________
 names = []
@@ -107,13 +112,15 @@ with open("mockmirs_prova.fa") as handle:
 		names.append(record.id)
 		sequences.append(str(record.seq))
 
-for i in range(len(sequences)):
-	for j in range(len(sequences)):
-		if(i!=j):	#don't align a mirna with itself
-			alignments = aligner.align(sequences[i], sequences[j])	#list of alignments, notice we are using global alignments
-			print(">{}: {}\t vs. \t{}: {}".format(names[i],sequences[i],names[j],sequences[j]))
-			for alignment in alignments:
-				print(alignment)
+print(sequences[i], sequences[j])
 
-			score = aligner.score(sequences[i], sequences[j])
-			print("Score: ", score, "\n")
+#for i in range(len(sequences)):
+#	for j in range(len(sequences)):
+#		if(i!=j):	#don't align a mirna with itself
+#			alignments = aligner.align(sequences[i], sequences[j])	#list of alignments, notice we are using global alignments
+#			print(">{}: {}\t vs. \t{}: {}".format(names[i],sequences[i],names[j],sequences[j]))
+#			for alignment in alignments:
+#				print(alignment)
+
+#			score = aligner.score(sequences[i], sequences[j])
+#			print("Score: ", score, "\n")

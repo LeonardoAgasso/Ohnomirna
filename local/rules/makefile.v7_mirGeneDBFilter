@@ -98,6 +98,15 @@ gencode.geneOnly.miRNA_intWithGenes.mirgeneFlagged.bed: gencode.geneOnly.miRNA.m
 	bedtools intersect -a $< -b $(word 2, $^) > $@
 	#NR = 3,845
 
+singleOhnologs_list.tsv: ohnologs_makino_parampriya_merged.flagged.geneNames.tsv
+	awk -F"\t" '{print $$1"\t"$$2"\t"$$3"\t"$$7"\n"$$4"\t"$$5"\t"$$6"\t"$$7}' $< | sort | uniq > $@
+	#NR =  8,798
+
+singleOhnologs_hosting_mirna.tsv: protodictionary.tsv singleOhnologs_list.tsv
+	translate -a -d -v -e XXXXXX $(word 2, $^) 13 < $< | grep -vw XXXXXX | awk -F"\t" '{print $$13"\t"$$14"\t"$$15"\t"$$16"\t"$$8"\t"$$6}' > $@
+	#This is a document containing single ohnolog genes which host a microRNA (prof. Matteo Osella suggestion)
+	#NR =
+
 protodictionary.tsv: gencode.geneOnly.miRNA_intWithGenes.mirgeneFlagged.bed gencode.geneOnly.bed
 	bedtools intersect -wb -a $< -b $(word 2, $^) | awk -F"\t" '$$16!="miRNA"' > $@
 
