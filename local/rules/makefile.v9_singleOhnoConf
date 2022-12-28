@@ -635,17 +635,40 @@ human_paralogs_biomart.halved.filtered.flagged.geneNames.tsv: dic.ENSG_geneName_
 
 human_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv: human_paralogs_biomart.halved.filtered.flagged.geneNames.tsv
 	awk -F"\t" '{print $$2 "\t" $$3 "\t" $$1 "\t" $$5 "\t" $$6 "\t" $$4 "\t" $$18 "\t" $$13}' $< > $@
-	#
+	#Inverted because the ENSG is placed last so that the miRNA can be appended
 	#
 	#NR = 1,771,967
 	#	NR (grep WGD) = 8,067
 	#	NR (grep SSD = grep -v WGD) = 1,763,900
 	#
 	#Strucure:
+	#	1: HG_1 Name
+	#	2: HG_1 Biotype
+	#	3: HG_1 ENSG
+	#	4: HG_2 Name
+	#	5: HG_2 Biotype
+	#	6: HG_2 ENSG
+	#	7: WGD/SSD flag
+	#	8: Couple_last_common_ancestor
 
 partial.paralogs_miRNAdated.mirgeneFlagged_couples.tsv: human_paralogs_biomart.halved.filtered.flagged.geneNames.reducedAndInverted.tsv dictionary.miRNAdated.tsv
 	translate -a -d -j -v -e XXXXXX $(word 2, $^) 3 < $< | grep -vw XXXXXX > $@
 	#Here the miRNA is appended only to the first Ohnolog of the couple
+	#
+	#NR =
+	#
+	#Strucure:
+	#	1: HG_1 Name
+	#	2: HG_1 Biotype
+	#	3: HG_1 ENSG
+	#	4: Hosted_1 miRNA biotype (redundant, always "miRNA")
+	#	5: Hosted_1 miRNA name
+	#	6: Hosted_1 miRNA mirgene flag
+	#	7: HG_2 Name
+	#	8: HG_2 Biotype
+	#	9: HG_2 ENSG
+	#	10: WGD/SSD flag
+	#	11: Couple_last_common_ancestor
 
 extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv: partial.paralogs_miRNAdated.mirgeneFlagged_couples.tsv dictionary.miRNAdated.tsv
 	translate -a -d -j -v -e XXXXXX $(word 2, $^) 11 < $< | grep -vw XXXXXX > $@
@@ -656,8 +679,25 @@ extended.paralogs_miRNAdated.mirgeneFlagged_couples.tsv: partial.paralogs_miRNAd
 	#	NR (grep WGD) = 106
 	#	NR (grep SSD) = 481
 	#
-	#Structure:
-	#
+	#Strucure:
+	#	1: HG_1 Name
+	#	2: HG_1 Biotype
+	#	3: HG_1 ENSG
+	#	4: Hosted_1 miRNA biotype (redundant, always "miRNA")
+	#	5: Hosted_1 miRNA name
+	#	6: Hosted_1 miRNA mirgene flag
+	#	7: Hosted_1 miRNA ENSG
+	#	8: Hosted_1 miRNA date
+	#	9: HG_2 Name
+	#	10: HG_2 Biotype
+	#	11: HG_2 ENSG
+	#	12: Hosted_2 miRNA biotype (redundant, always "miRNA")
+	#	13: Hosted_2 miRNA name
+	#	14: Hosted_2 miRNA mirgene flag
+	#	15: Hosted_2 miRNA ENSG
+	#	16: Hosted_2 miRNA date
+	#	17: WGD/SSD flag
+	#	18: Couple_last_common_ancestor
 
 
 
