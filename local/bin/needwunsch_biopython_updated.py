@@ -91,7 +91,9 @@ def Seed_Sensistive_SimMatr():
 	print(counts)
 	return counts
 
+
 #_____________MAIN_____________
+
 names = []
 sequences = []
 

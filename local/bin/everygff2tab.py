@@ -50,8 +50,6 @@ def ignore_broken_pipe(func):
 		else:
 			raise
 
-
-
 def main():
 	global missing_value
 	global gff_version
