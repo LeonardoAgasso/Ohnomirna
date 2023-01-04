@@ -43,15 +43,35 @@ def ignore_broken_pipe(func):
 			raise
 
 def parse_args():
+	#parse command line arguments (colored using ANSI escape sequences)
 	parser = OptionParser(usage=format_usage('''
 		%prog [OPTIONS] <FASTA >qFASTA
 
-		Perform an all-vs-all alignment (using the Needleman-Wunsch algorithm) between the sequences in FASTA, 
+		Perform an all-vs-all alignment (using the Needleman-Wunsch algorithm) between the sequences in FASTA,
 		returns a qFASTA file where the header contains the names of the two aligned sequences
-		while the "body" contains the alignment score and the alignment itself.
-	'''))
+		while the "body" contains the alignment score and the alignment itself.\033[0m
+		Available seed types are (blue identifies the seed):
 
-	parser.add_option('-f', '--seed-format', default='NA', metavar='STRING',
+		  •		\033[7m'8mer'\033[0m 		            \033[7m'7mer-m8'\033[0m:
+		  		    ..\033[34mNNNNNNN\033[0mN-5'		..\033[34mNNNNNNN\033[0mN-5'
+				      |||||||			  |||||||
+				ORF...\033[33mNNNNNNN\033[31mA\033[0m...	    ORF...\033[33mNNNNNNN\033[0mN...
+				      87654321                    87654321
+		 
+		  •		\033[7m'7mer-A1'\033[0m                   \033[7m'6mer'\033[0m (default) :
+		  		    ..N\033[34mNNNNNN\033[0mN-5'		..N\033[34mNNNNNN\033[0mN-5'
+				       ||||||			   ||||||
+				ORF...N\033[33mNNNNNN\033[31mA\033[0m...	    ORF...N\033[33mNNNNNN\033[0mN...
+				      87654321                    87654321
+	'''
+#		• 'GUM' : to be defined
+#		• 'GUT' : to be defined
+#		• 'LP' : to be defined
+#		• 'BM' : to be defined
+#		• 'BT' : to be defined
+	))
+
+	parser.add_option('-t', '--seed-type', default='6mer', metavar='STRING',
 						help='Specify the format of the seed you want to consider (default: %default)')
 
 	parser.add_option('-g', '--gap-open', default=-5, metavar='INT',
@@ -88,20 +108,21 @@ def parse_args():
 	return parser.parse_args()
 
 def format_usage(usage):
-    def prefix_length(line):
-        length = 0
-        while length < len(line) and line[length] in (' ', '\t'):
-            length += 1
-        return length
+    
+	def prefix_length(line):
+		length = 0
+		while length < len(line) and line[length] in (' ', '\t'):
+			length += 1
+		return length
 
-    lines = usage.split('\n')
-    while len(lines) and len(lines[0].strip()) == 0:
-        del lines[0]
-    while len(lines) and len(lines[-1].strip()) == 0:
-        del lines[-1]
+	lines = usage.split('\n')
+	while len(lines) and len(lines[0].strip()) == 0:
+		del lines[0]
+	while len(lines) and len(lines[-1].strip()) == 0:
+		del lines[-1]
 
-    plen = min(prefix_length(l) for l in lines if len(l.strip()) > 0)
-    return '\n'.join(l[plen:] for l in lines)
+	plen = min(prefix_length(l) for l in lines if len(l.strip()) > 0)
+	return '\n'.join(l[plen:] for l in lines)
 
 def seed_modify(sequence):
 	#convert the seed nucleotides of a miRNA to a new alphabet (AUCG--->ZVRB)
@@ -216,6 +237,28 @@ def print_fasta_header(seq, names, i, j, options):
 		#print every alignment in a quasi FASTA format
 		print(">{}: {}\t | \t{}: {}".format(names[i], seed_restore(seq_i), names[j], seed_restore(seq_j)))
 
+def normalized_score(score, options, seq_i, seq_j):
+	#normalize the score between 0 and 1
+	tot_len = len(seq_i)+len(seq_j)
+	max_score = (seed_length*options.seed_match_score)+((0.5)*(tot_len)*options.match_score)
+	score = score/max_score
+	return score
+
+def seed_definition(options):
+	global seed_length
+	global final_notseed_bps
+
+	final_notseed_bps = 1
+
+	#switch structure to define the seed length
+	if options.seed_type=='8mer' or options.seed_type=='7mer-m8':
+		seed_length = 7
+	elif options.seed_type=='6mer' or options.seed_type=='7mer-A1':
+		seed_length = 6
+
+
+	
+	
 
 def main():
 	names = []
@@ -223,8 +266,11 @@ def main():
 
 	options, args = parse_args()
 
-	dic_sssmatr = Sim_matr_to_dic(nonseed_nt,seed_nt,options.remove_seed)
+	seed_definition(options)
+
+	dic_sssmatr = Sim_matr_to_dic(nonseed_nt, seed_nt, options.remove_seed)
 	
+
 	# Store ordered info about mirna IDs
 	with open("/dev/stdin","r") as handle:
 		for record in SeqIO.parse(handle, "fasta"):	#count how many sequences
@@ -248,7 +294,8 @@ def main():
 												penalize_end_gaps = options.penalize_end_gaps, 
 												penalize_extend_when_opening = True)
 
-					print(format_alignment(*a[0]))
+					print(format_alignment(*a[0]), 
+						' Normalized score=',round(normalized_score(a[0][2], options, seq_i, seq_j),3))
 
 
 if __name__=='__main__':
