@@ -43,7 +43,7 @@ def ignore_broken_pipe(func):
 			raise
 
 def parse_args():
-	#parse command line arguments (colored using ANSI escape sequences)
+	
 	parser = OptionParser(usage=format_usage('''
 		%prog [OPTIONS] <FASTA >qFASTA
 
@@ -64,11 +64,22 @@ def parse_args():
 				ORF...N\033[33mNNNNNN\033[31mA\033[0m...	    ORF...N\033[33mNNNNNN\033[0mN...
 				      87654321                    87654321
 	'''
-#		• 'GUM' : to be defined
-#		• 'GUT' : to be defined
-#		• 'LP' : to be defined
-#		• 'BM' : to be defined
-#		• 'BT' : to be defined
+	#parse command line arguments (colored using ANSI escape sequences)
+	#Seed types that can be added in future
+	#		• 'GUM' : to be defined
+	#		• 'GUT' : to be defined
+	#		• 'LP' : to be defined
+	#		• 'BM' : to be defined
+	#		• 'BT' : to be defined
+	'''
+		In-seed nucleotides are converted in the the following way:		
+		  A ---> Z
+		  C ---> V
+		  G ---> R
+		  U ---> B	
+	'''	
+
+		
 	))
 
 	parser.add_option('-t', '--seed-type', default='6mer', metavar='STRING',
@@ -108,7 +119,7 @@ def parse_args():
 	return parser.parse_args()
 
 def format_usage(usage):
-    
+	
 	def prefix_length(line):
 		length = 0
 		while length < len(line) and line[length] in (' ', '\t'):
@@ -242,7 +253,6 @@ def normalized_score(score, options, seq_i, seq_j):
 	tot_len = len(seq_i)+len(seq_j)
 	max_score = (seed_length*options.seed_match_score)+((0.5)*(tot_len)*options.match_score)
 	score = score/max_score
-	return score
 
 def seed_definition(options):
 	global seed_length
@@ -264,13 +274,18 @@ def main():
 	names = []
 	sequences = []
 
+	#Ignore the deprecationwarning from Bio.pairwise2
+	warnings.filterwarnings("ignore", category=PendingDeprecationWarning)
+
+	# Parse command line arguments
 	options, args = parse_args()
 
+	# Define seed properties
 	seed_definition(options)
 
+	# Define similarity matrix
 	dic_sssmatr = Sim_matr_to_dic(nonseed_nt, seed_nt, options.remove_seed)
 	
-
 	# Store ordered info about mirna IDs
 	with open("/dev/stdin","r") as handle:
 		for record in SeqIO.parse(handle, "fasta"):	#count how many sequences
@@ -299,6 +314,8 @@ def main():
 
 
 if __name__=='__main__':
-	warnings.filterwarnings("ignore", category=PendingDeprecationWarning) #Ignore the deprecationwarning from Bio.pairwise2
+
+	#Ignore the deprecationwarning from Bio.pairwise2
+	warnings.filterwarnings("ignore", category=PendingDeprecationWarning) 
 	ignore_broken_pipe(main)
 	
