@@ -19,7 +19,6 @@ from optparse import OptionParser
 from Bio import SeqIO
 from Bio import pairwise2
 from Bio.pairwise2 import format_alignment
-from Bio.Align.substitution_matrices import Array
 
 
 #Seed parameters
@@ -253,6 +252,7 @@ def normalized_score(score, options, seq_i, seq_j):
 	tot_len = len(seq_i)+len(seq_j)
 	max_score = (seed_length*options.seed_match_score)+((0.5)*(tot_len)*options.match_score)
 	score = score/max_score
+	return score
 
 def seed_definition(options):
 	global seed_length
@@ -267,8 +267,7 @@ def seed_definition(options):
 		seed_length = 6
 
 
-	
-	
+
 
 def main():
 	names = []
@@ -285,12 +284,18 @@ def main():
 
 	# Define similarity matrix
 	dic_sssmatr = Sim_matr_to_dic(nonseed_nt, seed_nt, options.remove_seed)
+
+	#Define dictionary to store the names of the mirnas associated with the matrix indices
+	dic_names = {}
 	
 	# Store ordered info about mirna IDs
 	with open("/dev/stdin","r") as handle:
 		for record in SeqIO.parse(handle, "fasta"):	#count how many sequences
 			names.append(record.id)
 			sequences.append(str(record.seq))
+		
+		#Define matrix to store the scores of every single alignment
+		conf_matrix = np.zeros((len(names),len(names)))
 
 	#for-loop that performs the all-vs-all confrontation
 		for i in range(len(sequences)):
@@ -308,14 +313,24 @@ def main():
 												score_only = options.score_only, 
 												penalize_end_gaps = options.penalize_end_gaps, 
 												penalize_extend_when_opening = True)
+					
+					norm_score = round(normalized_score(a[0][2], options, seq_i, seq_j),3)
+					print(format_alignment(*a[0]), ' Normalized score=' , norm_score)
 
-					print(format_alignment(*a[0]), 
-						' Normalized score=',round(normalized_score(a[0][2], options, seq_i, seq_j),3))
+					#fill the matrix with the scores
+					conf_matrix[i,j] = norm_score
+					#fill the dictionary with the names
+					dic_names[i] = names[i]
+					dic_names[j] = names[j]
+
+	print(conf_matrix)
+
 
 
 if __name__=='__main__':
 
 	#Ignore the deprecationwarning from Bio.pairwise2
 	warnings.filterwarnings("ignore", category=PendingDeprecationWarning) 
+	
 	ignore_broken_pipe(main)
 	
