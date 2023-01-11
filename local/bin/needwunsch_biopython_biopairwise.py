@@ -266,6 +266,38 @@ def seed_definition(options):
 	elif options.seed_type=='6mer' or options.seed_type=='7mer-A1':
 		seed_length = 6
 
+#function to print a matrix as a picture
+def print_matrix(matrix):
+	for i in range(0,len(matrix)):
+		for j in range(0,len(matrix[i])):
+			print(matrix[i][j], end="\t\t")
+		print()
+
+#function to save a matrix as a png. Darker colors represent higher values and axes values are given by a dictionary
+def print_matrix_png(matrix, dic):
+	import matplotlib.pyplot as plt
+
+	fig = plt.figure()
+	fig.set_size_inches(10.0, 10.0)
+	ax = fig.add_subplot(111)
+	fig.subplots_adjust(left=0.2, bottom=0.05)
+	cax = ax.matshow(matrix, interpolation='nearest', cmap=plt.cm.Blues)
+	fig.colorbar(cax)
+
+	#Set the ticks to be at the edges of the matrix
+	ax.set_xticks(np.arange(len(dic)), minor=False)
+	ax.set_yticks(np.arange(len(dic)), minor=False)
+
+	#Set the ticks labels to be the dictionary keys
+	ax.set_xticklabels(dic.values(), minor=False)
+	ax.set_yticklabels(dic.values(), minor=False)
+
+	#Rotate the x axis labels
+	plt.xticks(rotation=90)
+
+	#Save the figure as a png
+	fig.savefig('alignments_score_matrix.png')
+
 
 
 
@@ -318,12 +350,12 @@ def main():
 					print(format_alignment(*a[0]), ' Normalized score=' , norm_score)
 
 					#fill the matrix with the scores
-					conf_matrix[i,j] = norm_score
+					conf_matrix[i,j] = a[0][2]
 					#fill the dictionary with the names
 					dic_names[i] = names[i]
 					dic_names[j] = names[j]
 
-	print(conf_matrix)
+	print_matrix_png(conf_matrix, dic_names)
 
 
 
